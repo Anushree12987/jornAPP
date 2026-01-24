@@ -1,0 +1,350 @@
+@page "/moodstats"
+@using jornAPP.Components.Models
+@using jornAPP.Services
+@inject JournalService JournalService
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<div class="stats-container">
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <button type="button" class="btn-nav" @onclick="GoToHome">🏠 Home</button>
+        <button type="button" class="btn-nav" @onclick="GoToEntries">📖 Entries</button>
+        <button type="button" class="btn-nav" @onclick="GoToAddEntry">📝 Add Entry</button>
+        <button type="button" class="btn-nav" @onclick="GoToAnalytics">📊 Analytics</button>
+    </nav>
+
+    <h1 class="page-title">📊 Mood Analytics</h1>
+    <p class="subtitle">Track your emotions and journal habits over time.</p>
+
+    <!-- Mood Chart -->
+    <div class="card">
+        <h2>😊 Mood Tracker</h2>
+        <canvas id="moodChart"></canvas>
+    </div>
+
+    <!-- Streaks -->
+    <div class="card">
+        <h2>🔥 Streaks</h2>
+        <p>Current Streak: <strong>@currentStreak</strong> days</p>
+        <p>Longest Streak: <strong>@longestStreak</strong> days</p>
+    </div>
+
+    <!-- Trends -->
+    <div class="card">
+        <h2>📈 Mood Trends</h2>
+        <canvas id="trendChart"></canvas>
+    </div>
+
+    <!-- Back Button -->
+    <div class="back-button-container">
+        <button type="button" class="btn-back" @onclick="GoToEntries">
+            ← Back to Entries
+        </button>
+        <button type="button" class="btn-back" @onclick="GoToHome">
+            ← Back to Home
+        </button>
+    </div>
+
+</div>
+
+<style>
+    body {
+        background: #121212;
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+    }
+
+    .stats-container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+    }
+
+    .btn-nav {
+        background: #ffd700;
+        color: #121212;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        font-size: 0.95rem;
+    }
+
+    .btn-nav:hover {
+        opacity: 0.85;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-nav:active {
+        transform: translateY(0px);
+    }
+
+    /* Page Title */
+    .page-title {
+        font-size: 2.5rem;
+        color: #ffd700;
+        text-align: center;
+        margin-bottom: 5px;
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
+    }
+
+    .subtitle {
+        color: #e0e0e0;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 1.1rem;
+    }
+
+    /* Cards */
+    .card {
+        background: #2a2a2a;
+        border-radius: 16px;
+        padding: 28px 30px;
+        margin-bottom: 28px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+        color: #ffffff;
+    }
+
+    /* Card headings */
+    .card h2 {
+        color: #ffd700;
+        margin-bottom: 16px;
+        font-size: 1.5rem;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    }
+
+    /* Streak numbers */
+    .card p {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin: 6px 0;
+    }
+
+    .card p strong {
+        color: #ffd700;
+        font-size: 1.4rem;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    }
+
+    /* Canvas charts */
+    canvas {
+        background: #1e1e1e;
+        border-radius: 12px;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+        padding: 10px;
+        width: 100%;
+    }
+
+    /* Back Button Container */
+    .back-button-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid #444;
+        flex-wrap: wrap;
+    }
+
+    .btn-back {
+        background: #333;
+        color: #ffd700;
+        border: 2px solid #ffd700;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        font-size: 0.95rem;
+    }
+
+    .btn-back:hover {
+        background: #ffd700;
+        color: #121212;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-back:active {
+        transform: translateY(0px);
+    }
+
+    /* Responsive */
+    @@media (max-width: 600px) {
+        .page-title {
+            font-size: 2rem;
+        }
+
+        .top-nav {
+            gap: 10px;
+        }
+
+        .btn-nav {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+@code {
+private List<JournalEntry> entries = new();
+private Dictionary<string, int> moodCounts = new();
+
+private int currentStreak;
+private int longestStreak;
+private bool rendered;
+
+protected override async Task OnInitializedAsync()
+{
+entries = await JournalService.GetAllEntriesAsync();
+CalculateMoodCounts();
+CalculateStreaks();
+}
+
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+if (firstRender && !rendered)
+{
+rendered = true;
+
+try
+{
+await JS.InvokeVoidAsync(
+"renderMoodChart",
+moodCounts.Keys.ToArray(),
+moodCounts.Values.ToArray()
+);
+
+var ordered = entries.OrderBy(e => e.EntryDate).ToList();
+
+await JS.InvokeVoidAsync(
+"renderTrendChart",
+ordered.Select(e => e.EntryDate.ToString("MM/dd")).ToArray(),
+ordered.Select(e => MoodToNumber(e.PrimaryMood)).ToArray()
+);
+}
+catch (Exception ex)
+{
+Console.WriteLine($"Chart rendering error: {ex.Message}");
+}
+}
+}
+
+private void CalculateMoodCounts()
+{
+moodCounts.Clear();
+
+foreach (var entry in entries)
+{
+if (!string.IsNullOrWhiteSpace(entry.PrimaryMood))
+{
+moodCounts.TryAdd(entry.PrimaryMood, 0);
+moodCounts[entry.PrimaryMood]++;
+}
+}
+}
+
+private void CalculateStreaks()
+{
+if (!entries.Any()) return;
+
+var dates = entries
+.Select(e => e.EntryDate.Date)
+.Distinct()
+.OrderBy(d => d)
+.ToList();
+
+int streak = 1;
+currentStreak = 1;
+longestStreak = 1;
+
+for (int i = 1; i < dates.Count; i++)
+{
+if ((dates[i] - dates[i - 1]).Days == 1)
+{
+streak++;
+currentStreak = streak;
+longestStreak = Math.Max(longestStreak, streak);
+}
+else
+{
+streak = 1;
+}
+}
+}
+
+private int MoodToNumber(string mood) => mood switch
+{
+"😊 Happy" => 5,
+"😌 Calm" => 4,
+"😐 Okay" => 3,
+"😔 Sad" => 2,
+"😤 Stressed" => 1,
+_ => 3
+};
+
+// Navigation methods
+private void GoToHome()
+{
+try
+{
+NavigationManager.NavigateTo("/");
+}
+catch (Exception ex)
+{
+Console.WriteLine($"Navigation error: {ex.Message}");
+}
+}
+
+private void GoToEntries()
+{
+try
+{
+NavigationManager.NavigateTo("/entries");
+}
+catch (Exception ex)
+{
+Console.WriteLine($"Navigation error: {ex.Message}");
+}
+}
+
+private void GoToAddEntry()
+{
+try
+{
+NavigationManager.NavigateTo("/addentry");
+}
+catch (Exception ex)
+{
+Console.WriteLine($"Navigation error: {ex.Message}");
+}
+}
+
+private void GoToAnalytics()
+{
+try
+{
+NavigationManager.NavigateTo("/analytics");
+}
+catch (Exception ex)
+{
+Console.WriteLine($"Navigation error: {ex.Message}");
+}
+}
+}

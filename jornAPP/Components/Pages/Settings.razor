@@ -1,0 +1,332 @@
+@page "/settings"
+@using jornAPP.Components.Models
+@using SQLite
+@using QuestPDF.Fluent
+@inject NavigationManager NavigationManager
+
+<style>
+/* ===== Top Navbar ===== */
+.top-row {
+    background-color: #000000; /* black */
+    color: #FFD700; /* yellow */
+    height: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.top-row .navbar-brand {
+    color: #FFD700; /* yellow */
+    text-decoration: none;
+}
+
+/* ===== Sidebar / Scrollable Nav ===== */
+.nav-scrollable {
+    background-color: #000000; /* black */
+    color: #FFD700; /* yellow text */
+    width: 220px;
+    height: 100vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 50px;
+    left: 0;
+    padding-top: 10px;
+    z-index: 1000;
+}
+
+/* Sidebar nav items */
+.nav-scrollable .nav-item {
+    padding: 10px 15px;
+}
+
+/* Nav links styling */
+.nav-scrollable .nav-link {
+    display: flex;
+    align-items: center;
+    color: #FFD700; /* yellow */
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+}
+
+/* Nav icons */
+.nav-scrollable .nav-link span {
+    margin-right: 8px;
+}
+
+/* Hover effect */
+.nav-scrollable .nav-link:hover {
+    background-color: #FFD700; /* yellow background */
+    color: #000000; /* black text */
+}
+
+/* Active link */
+.nav-scrollable .nav-link.active {
+    background-color: #FFD700; /* yellow background */
+    color: #000000; /* black text */
+}
+
+/* Scrollbar styling */
+.nav-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+.nav-scrollable::-webkit-scrollbar-thumb {
+    background-color: #FFD700;
+    border-radius: 3px;
+}
+.nav-scrollable::-webkit-scrollbar-track {
+    background-color: #000000;
+}
+
+/* Page content next to sidebar */
+.page-content {
+    margin-left: 230px;
+    padding: 20px;
+    color: #000; /* default black text */
+}
+
+.page-content h1 {
+    margin-bottom: 20px;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #FFD700;
+    color: #000000;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-primary:hover {
+    background-color: #e6c200;
+}
+
+.btn-danger {
+    background-color: #FF4500;
+    color: #fff;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-danger:hover {
+    background-color: #e03e00;
+}
+
+/* Inputs */
+input[type="checkbox"] {
+    margin-right: 10px;
+}
+input[type="date"], select {
+    margin: 0 10px 10px 0;
+    padding: 5px;
+}
+</style>
+
+<!-- ===== Sidebar ===== -->
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">jornAPP</a>
+    </div>
+</div>
+
+<div class="nav-scrollable">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="bi bi-house-door-fill"></span> Home</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter"><span class="bi bi-plus-square-fill"></span> Counter</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather"><span class="bi bi-list-nested"></span> Weather</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="addentry"><span class="bi bi-pencil-square"></span> Add Entry</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="entries"><span class="bi bi-journal-text"></span> Entries</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="moodstats"><span class="bi bi-bar-chart"></span> MoodStats</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="analytics"><span class="bi bi-graph-up"></span> Analytics</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link active" href="settings"><span class="bi bi-gear-fill"></span> Settings</NavLink>
+        </div>
+    </nav>
+</div>
+
+<!-- ===== Page Content ===== -->
+<div class="page-content">
+    <h1>Settings & Personalization</h1>
+
+    <hr />
+    <!-- 🌗 Theme Toggle -->
+    <h3>Theme</h3>
+    <label>
+        <input type="checkbox" @bind="IsDarkMode" /> Dark Mode
+    </label>
+
+    <hr />
+    <!-- ⏱ Auto-Lock Timer -->
+    <h3>Auto-Lock</h3>
+    <label>Auto-lock after:</label>
+    <select @bind="AutoLockMinutes">
+        <option value="1">1 min</option>
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+    </select>
+
+    <hr />
+    <!-- 🔒 Quick Lock -->
+    <h3>Security</h3>
+    <button class="btn btn-danger" @onclick="QuickLock">Quick Lock 🔒</button>
+
+    <hr />
+    <!-- 🗂 Export Journals -->
+    <h3>Export Journals</h3>
+    <label>From:</label>
+    <input type="date" @bind="FromDate" />
+    <label>To:</label>
+    <input type="date" @bind="ToDate" />
+
+    <br /><br />
+    <button class="btn btn-primary" @onclick="ExportCsv">Export CSV</button>
+    <button class="btn btn-primary" @onclick="ExportPdf">Export PDF</button>
+
+    @if (!string.IsNullOrEmpty(DownloadLink))
+    {
+        <p>
+            <a href="@DownloadLink" download="@DownloadFileName">Click here to download @DownloadFileName</a>
+        </p>
+    }
+</div>
+
+@code {
+    // Theme
+    private bool IsDarkMode { get; set; }
+
+    // Auto-lock
+    private int autoLockMinutes = 5;
+    private int AutoLockMinutes
+    {
+        get => autoLockMinutes;
+        set
+        {
+            autoLockMinutes = value;
+            SetAutoLockTimer();
+        }
+    }
+
+    private System.Timers.Timer? inactivityTimer;
+
+    // Export
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string DownloadLink { get; set; } = string.Empty;
+    private string DownloadFileName { get; set; } = string.Empty;
+
+    // SQLite
+    private SQLiteConnection? db;
+
+    protected override void OnInitialized()
+    {
+        var dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "journal.db3");
+        db = new SQLiteConnection(dbPath);
+        db.CreateTable<JournalEntry>();
+
+        StartInactivityTimer();
+    }
+
+    private void StartInactivityTimer()
+    {
+        inactivityTimer = new System.Timers.Timer(AutoLockMinutes * 60 * 1000);
+        inactivityTimer.Elapsed += LockApp;
+        inactivityTimer.Start();
+    }
+
+    private void SetAutoLockTimer()
+    {
+        inactivityTimer?.Stop();
+        inactivityTimer = new System.Timers.Timer(AutoLockMinutes * 60 * 1000);
+        inactivityTimer.Elapsed += LockApp;
+        inactivityTimer.Start();
+    }
+
+    private void LockApp(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        NavigationManager.NavigateTo("/lock");
+    }
+
+    private void QuickLock()
+    {
+        NavigationManager.NavigateTo("/lock");
+    }
+
+    private void ExportCsv()
+    {
+        if (db == null) return;
+
+        var entries = db.Table<JournalEntry>()
+            .Where(x => x.EntryDate.Date >= FromDate.Date && x.EntryDate.Date <= ToDate.Date)
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Date,Title,PrimaryMood,SecondaryMood1,SecondaryMood2,Tags,Category,Content");
+
+        foreach (var e in entries)
+        {
+            sb.AppendLine($"{e.EntryDate:yyyy-MM-dd},{e.Title},{e.PrimaryMood},{e.SecondaryMood1},{e.SecondaryMood2},{e.Tags},{e.Category},{e.Content}");
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        DownloadLink = $"data:text/csv;base64,{Convert.ToBase64String(bytes)}";
+        DownloadFileName = $"Journal_{FromDate:yyyyMMdd}_{ToDate:yyyyMMdd}.csv";
+    }
+
+    private void ExportPdf()
+    {
+        if (db == null) return;
+
+        var entries = db.Table<JournalEntry>()
+            .Where(x => x.EntryDate.Date >= FromDate.Date && x.EntryDate.Date <= ToDate.Date)
+            .ToList();
+
+        var doc = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Margin(20);
+                page.Header().Text($"Journal Entries from {FromDate:dd/MM/yyyy} to {ToDate:dd/MM/yyyy}")
+                    .SemiBold().FontSize(16);
+
+                page.Content().Column(col =>
+                {
+                    foreach (var e in entries)
+                    {
+                        col.Item().Text($"{e.EntryDate:yyyy-MM-dd} - {e.Title} - {e.PrimaryMood}");
+                        col.Item().Text(e.Content);
+                        col.Item().Text($"Tags: {e.Tags} | Category: {e.Category}").Italic();
+                        col.Item().PaddingVertical(5).LineHorizontal(1);
+                    }
+                });
+            });
+        });
+
+        var pdfBytes = doc.GeneratePdf();
+        DownloadLink = $"data:application/pdf;base64,{Convert.ToBase64String(pdfBytes)}";
+        DownloadFileName = $"Journal_{FromDate:yyyyMMdd}_{ToDate:yyyyMMdd}.pdf";
+    }
+
+    public void Dispose()
+    {
+        inactivityTimer?.Dispose();
+        db?.Close();
+    }
+}

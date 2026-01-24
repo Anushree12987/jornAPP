@@ -1,0 +1,293 @@
+@page "/entries"
+@using jornAPP.Components.Models
+@using jornAPP.Services
+@inject JournalService JournalService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="entries-container">
+
+    <!-- Page Header -->
+    <h1 class="page-title">📖 Your Journal</h1>
+    <p class="subtitle">All your past entries are stored here. Stay reflective and inspired.</p>
+
+    <!-- Add New Entry Button -->
+    <button class="btn-primary mb-3" @onclick="GoToAddEntry">+ New Entry</button>
+
+    <!-- Filters Section -->
+    <div class="filters mb-4">
+        <input type="text" placeholder="Search by title/content..." @bind="searchText" class="input-field mb-2" />
+        <input type="date" @bind="filterDate" class="input-field mb-2" />
+        <select @bind="filterMood" class="input-field mb-2">
+            <option value="">Filter by Mood</option>
+            <option>😊 Happy</option>
+            <option>😌 Calm</option>
+            <option>😐 Okay</option>
+            <option>😔 Sad</option>
+            <option>😤 Stressed</option>
+        </select>
+        <input type="text" placeholder="Filter by tags (comma-separated)" @bind="filterTags" class="input-field mb-2" />
+        <button class="btn-primary" @onclick="ApplyFilters">Apply Filters</button>
+    </div>
+
+    <!-- Entries List -->
+    @if (pagedEntries == null)
+    {
+        <p class="muted">Loading entries...</p>
+    }
+    else if (!pagedEntries.Any())
+    {
+        <p class="muted">No journal entries found.</p>
+    }
+    else
+    {
+        <div class="entries-list">
+            @foreach (var entry in pagedEntries)
+            {
+                <div class="card">
+                    <div class="entry-header">
+                        <span class="date">@entry.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                        <span class="mood">
+                            @entry.PrimaryMood
+                            @if(!string.IsNullOrEmpty(entry.SecondaryMood1)) { <span>, @entry.SecondaryMood1</span> }
+                            @if(!string.IsNullOrEmpty(entry.SecondaryMood2)) { <span>, @entry.SecondaryMood2</span> }
+                        </span>
+                    </div>
+                    <h3 class="entry-title">@entry.Title</h3>
+                    <p class="entry-content">@entry.Content</p>
+                    <div class="card-actions">
+                        <button class="btn-edit" @onclick="() => EditEntry(entry)">Edit</button>
+                        <button class="btn-delete" @onclick="() => DeleteEntry(entry)">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination mt-3">
+            <button class="btn-primary me-2" @onclick="PrevPage" disabled="@(!CanPrev)">Previous</button>
+            <span>Page @currentPage of @totalPages</span>
+            <button class="btn-primary ms-2" @onclick="NextPage" disabled="@(!CanNext)">Next</button>
+        </div>
+    }
+</div>
+
+<style>
+body {
+    background: #121212;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+}
+
+/* Container */
+.entries-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+}
+
+/* Titles */
+.page-title {
+    font-size: 2.5rem;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+}
+
+.subtitle {
+    color: #dcdcdc;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1rem;
+}
+
+/* Buttons */
+.btn-primary {
+    display:inline-block;
+    background:#ffd700;
+    color:#121212;
+    border:none;
+    padding:10px 20px;
+    border-radius:12px;
+    font-weight:700;
+    cursor:pointer;
+    transition:all 0.2s ease-in-out;
+}
+
+.btn-primary:hover { opacity:0.9; transform:translateY(-2px); }
+
+.btn-edit {
+    background:#2a2a2a;
+    color:#ffd700;
+    border:none;
+    padding:6px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-edit:hover { background:#ffd700; color:#121212; }
+
+.btn-delete {
+    background:#ff4c4c;
+    color:#fff;
+    border:none;
+    padding:6px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-delete:hover { background:#ff0000; }
+
+/* Filters & Inputs */
+.input-field {
+    width:100%;
+    padding:10px 14px;
+    border-radius:10px;
+    border:none;
+    background:#2a2a2a;
+    color:#fff;
+    font-size:1rem;
+    transition: all 0.2s;
+    margin-bottom:10px;
+}
+
+.input-field:focus {
+    outline:none;
+    border:1px solid #ffd700;
+    box-shadow:0 0 6px #ffd700;
+}
+
+/* Entries List */
+.entries-list { display:flex; flex-direction:column; gap:20px; }
+
+.card {
+    background:#1e1e1e;
+    padding:20px;
+    border-radius:14px;
+    box-shadow:0 12px 25px rgba(0,0,0,0.5);
+    transition: all 0.2s;
+}
+
+.card:hover { transform: translateY(-2px); }
+
+.entry-header {
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:10px;
+    font-weight:600;
+}
+
+.entry-header .date { color:#ffd700; }
+.entry-header .mood {
+    background:#2a2a2a;
+    color:#ffd700;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:0.9rem;
+}
+
+.entry-title {
+    font-size: 1.2rem;
+    color:#ffd700;
+    margin-bottom:6px;
+}
+
+.entry-content { color:#e0e0e0; line-height:1.6; }
+
+.muted { text-align:center; color:#9a9a9a; font-size:0.95rem; }
+
+.card-actions { margin-top:12px; display:flex; gap:10px; }
+
+/* Pagination */
+.pagination { text-align:center; margin-top:15px; }
+.pagination button {
+    padding:6px 12px;
+    border-radius:10px;
+    border:none;
+    background:#ffd700;
+    color:#121212;
+    font-weight:600;
+    cursor:pointer;
+    transition: all 0.2s;
+}
+.pagination button:disabled { opacity:0.5; cursor:default; }
+
+</style>
+
+@code {
+    List<JournalEntry> allEntries = new();
+    List<JournalEntry> filteredEntries = new();
+    List<JournalEntry> pagedEntries = new();
+
+    int currentPage = 1;
+    int pageSize = 5;
+    int totalPages = 1;
+
+    string searchText = "";
+    DateTime? filterDate = null;
+    string filterMood = "";
+    string filterTags = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        allEntries = await JournalService.GetAllEntriesAsync();
+        ApplyFilters();
+    }
+
+    void ApplyFilters()
+    {
+        filteredEntries = allEntries;
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+            filteredEntries = filteredEntries.FindAll(e => (e.Title != null && e.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                                                         || (e.Content != null && e.Content.Contains(searchText, StringComparison.OrdinalIgnoreCase)));
+
+        if (filterDate.HasValue)
+            filteredEntries = filteredEntries.FindAll(e => e.EntryDate.Date == filterDate.Value.Date);
+
+        if (!string.IsNullOrWhiteSpace(filterMood))
+            filteredEntries = filteredEntries.FindAll(e => e.PrimaryMood == filterMood
+                                                         || e.SecondaryMood1 == filterMood
+                                                         || e.SecondaryMood2 == filterMood);
+
+        if (!string.IsNullOrWhiteSpace(filterTags))
+        {
+            var tags = filterTags.Split(',', StringSplitOptions.TrimEntries);
+            filteredEntries = filteredEntries.FindAll(e => e.Tags != null && tags.Any(t => e.Tags.Contains(t, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        totalPages = (int)Math.Ceiling((double)filteredEntries.Count / pageSize);
+        currentPage = 1;
+        LoadPage();
+    }
+
+    void LoadPage()
+    {
+        pagedEntries = filteredEntries
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    void NextPage() { if (currentPage < totalPages) { currentPage++; LoadPage(); } }
+    void PrevPage() { if (currentPage > 1) { currentPage--; LoadPage(); } }
+
+    bool CanNext => currentPage < totalPages;
+    bool CanPrev => currentPage > 1;
+
+    void GoToAddEntry() => Nav.NavigateTo("/addentry");
+
+    void EditEntry(JournalEntry entry) => Nav.NavigateTo($"/addentry?date={entry.EntryDate:yyyy-MM-dd}");
+
+    async Task DeleteEntry(JournalEntry entry)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the entry on {entry.EntryDate:MMM dd, yyyy}?"))
+        {
+            await JournalService.DeleteEntryAsync(entry);
+            allEntries.Remove(entry);
+            ApplyFilters();
+        }
+    }
+}

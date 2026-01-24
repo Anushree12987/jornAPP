@@ -1,0 +1,169 @@
+@page "/"
+@using jornAPP.Services
+@inject SecurityService SecurityService
+@inject NavigationManager Nav
+
+<div class="setup-container">
+    <h2>Welcome to JournalApp 🔐</h2>
+
+    @if (isLoading)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else
+    {
+        @if (hasExistingUser)
+        {
+            <p class="info-text">You already have a journal.</p>
+            <div class="button-group">
+                <button class="btn-primary" @onclick="GoToLock">Unlock Existing Journal</button>
+                <button class="btn-secondary" @onclick="CreateNewJournal">Create New Journal</button>
+            </div>
+        }
+        else
+        {
+            <input class="input-field" placeholder="Username" @bind="username" />
+            <input class="input-field" placeholder="Create Password" type="password" @bind="password" />
+            <button class="btn-primary" @onclick="Register">Create Journal</button>
+            <p class="error">@message</p>
+        }
+    }
+</div>
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #121212;
+        color: #ffffff;
+    }
+
+    .setup-container {
+        max-width: 450px;
+        margin: 80px auto;
+        padding: 30px;
+        background: #1e1e1e;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        text-align: center;
+    }
+
+    h2 {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        color: #ffdd57;
+    }
+
+    .loading {
+        font-size: 1rem;
+        color: #aaaaaa;
+    }
+
+    .info-text {
+        font-size: 1rem;
+        margin-bottom: 20px;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border: none;
+        background: #2a2a2a;
+        color: #ffffff;
+        font-size: 1rem;
+    }
+
+    .input-field::placeholder {
+        color: #aaaaaa;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        padding: 12px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn-primary {
+        background: #ffdd57;
+        color: #121212;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.85;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #444444;
+        color: #ffffff;
+    }
+
+    .btn-secondary:hover {
+        background: #555555;
+        transform: translateY(-2px);
+    }
+
+    .error {
+        color: #ff4c4c;
+        margin-top: 12px;
+    }
+
+    .button-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+</style>
+
+@code {
+    string username = "";
+    string password = "";
+    string message = "";
+    bool isLoading = true;
+    bool hasExistingUser = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hasExistingUser = await SecurityService.IsUserRegisteredAsync();
+        isLoading = false;
+    }
+
+    void GoToLock()
+    {
+        Nav.NavigateTo("/lock", true);
+    }
+
+    async Task CreateNewJournal()
+    {
+        await SecurityService.DeleteAllUsersAsync();
+        Nav.NavigateTo("/", true);
+    }
+
+    async Task Register()
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            message = "All fields are required";
+            return;
+        }
+
+        var success = await SecurityService.RegisterAsync(username, password);
+
+        if (success)
+        {
+            Nav.NavigateTo("/lock", true);
+        }
+        else
+        {
+            message = "User already exists";
+        }
+    }
+}
