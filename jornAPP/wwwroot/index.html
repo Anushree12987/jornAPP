@@ -13,21 +13,36 @@
 
 <body>
 
-    <div class="status-bar-safe-area"></div>
+<div class="status-bar-safe-area"></div>
 
-    <div id="app">Loading...</div>
+<div id="app">Loading...</div>
 
-    <div id="blazor-error-ui" data-nosnippet>
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
-    </div>
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
 
-    <script src="_framework/blazor.webview.js" autostart="false"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/moodCharts.js"></script>
+<!-- Blazor WebView script -->
+<script src="_framework/blazor.webview.js" autostart="false"></script>
 
+<!-- Chart.js (only once!) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Custom JS for charts -->
+<script src="js/moodCharts.js"></script>
+
+<!-- PDF download helper -->
+<script>
+    window.blazorDownloadFile = (fileName, base64Data) => {
+        const link = document.createElement("a");
+        link.download = fileName;
+        link.href = "data:application/pdf;base64," + base64Data;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>
 
 </body>
-
 </html>

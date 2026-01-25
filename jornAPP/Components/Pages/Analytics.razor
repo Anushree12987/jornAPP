@@ -2,479 +2,158 @@
 @using jornAPP.Components.Models
 @using jornAPP.Services
 @inject JournalService JournalService
-@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="analytics-dashboard">
+<div class="analytics-container">
 
-    <!-- ===== PAGE HEADER ===== -->
-    <div class="page-header">
-        <h1>Journal Analytics</h1>
-        <p>Insights from your journaling patterns</p>
-    </div>
+    <h1>📊 Your Journal Analytics</h1>
+    <p class="subtitle">Insights based on your past entries</p>
 
-    <!-- ===== DASHBOARD GRID ===== -->
-    <MudGrid Spacing="3">
+    @if (!allEntries.Any())
+    {
+        <p class="empty">No entries yet.</p>
+    }
+    else
+    {
+        <!-- 📌 SUMMARY BOX -->
+        <div class="summary-card">
+            <h2>📌 Summary</h2>
+            <p><span>Most Frequent Mood</span> @mostFrequentMood</p>
+            <p><span>Total Entries</span> @allEntries.Count</p>
+            <p><span>Total Words Written</span> @totalWords</p>
+            <p><span>Average per Entry</span> @Math.Round(avgWordCount, 0)</p>
+        </div>
 
-        <!-- ROW 1: Mood Card | Streak Card | Missed Days -->
-        <MudItem xs="12" sm="4">
-            <MudCard Class="analytics-card stat-card">
-                <MudCardContent>
-                    <div class="stat-icon"></div>
-                    <h3>Most Frequent Mood</h3>
-                    <p class="stat-value">@mostFrequentMood</p>
-                    <p class="stat-label">@moodCounts.Sum(x => x.Count) total entries</p>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="4">
-            <MudCard Class="analytics-card stat-card">
-                <MudCardContent>
-                    <div class="stat-icon"></div>
-                    <h3>Current Streak</h3>
-                    <p class="stat-value">@currentStreak days</p>
-                    <p class="stat-label">Keep it going!</p>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="4">
-            <MudCard Class="analytics-card stat-card">
-                <MudCardContent>
-                    <div class="stat-icon"></div>
-                    <h3>Missed Days</h3>
-                    <p class="stat-value">@missedDays.Count</p>
-                    <p class="stat-label">since you started</p>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- ROW 2: Mood Chart | Word Trends -->
-        <MudItem xs="12" md="6">
-            <MudCard Class="analytics-card chart-card">
-                <MudCardHeader>
-                    <div class="card-header-content">
-                        <h3>Mood Distribution</h3>
-                    </div>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (moodCounts.Any())
+        <!-- 📊 DISTRIBUTION -->
+        <div class="grid">
+            <div class="card">
+                <h3>😊 Mood Distribution</h3>
+                <ul>
+                    @foreach (var m in moodCounts)
                     {
-                        <MudChart ChartType="ChartType.Pie"
-                                  Labels="@moodCounts.Select(x => x.Mood).ToArray()"
-                                  Values="@moodCounts.Select(x => (double)x.Count).ToArray()"
-                                  Height="300px" />
+                        <li>@m.Mood <span>@m.Count</span></li>
                     }
-                    else
-                    {
-                        <div class="empty-state">
-                            <p>No mood data yet</p>
-                            <span>Start journaling to see your patterns</span>
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+                </ul>
+            </div>
 
-        <MudItem xs="12" md="6">
-            <MudCard Class="analytics-card chart-card">
-                <MudCardHeader>
-                    <div class="card-header-content">
-                        <h3>Word Count Trends</h3>
-                    </div>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (wordCountsOverTime.Any())
+            <div class="card">
+                <h3>🎯 Category Distribution</h3>
+                <ul>
+                    @foreach (var c in categoryCounts)
                     {
-                        <MudChart ChartType="ChartType.Line"
-                                  Labels="@wordCountsOverTime.Select(w => w.EntryDate.ToString("MMM dd")).ToArray()"
-                                  Values="@wordCountsOverTime.Select(w => (double)w.WordCount).ToArray()"
-                                  Height="300px" />
-                        <div class="chart-footer">
-                            <span class="metric-label">Average:</span>
-                            <span class="metric-value">@Math.Round(avgWordCount, 0) words</span>
-                        </div>
+                        <li>@c.Category <span>@c.Count</span></li>
                     }
-                    else
-                    {
-                        <div class="empty-state">
-                            <p>No word count data yet</p>
-                            <span>Write your first entry</span>
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- ROW 3: Top Tags | Weekly Summary -->
-        <MudItem xs="12" md="6">
-            <MudCard Class="analytics-card list-card">
-                <MudCardHeader>
-                    <div class="card-header-content">
-                        <h3>Most Used Tags</h3>
-                    </div>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (tagCounts.Any())
-                    {
-                        <div class="tags-container">
-                            @foreach (var t in tagCounts.Take(8))
-                            {
-                                <div class="tag-item">
-                                    <div class="tag-info">
-                                        <span class="tag-name">@t.Tag</span>
-                                        <span class="tag-percentage">@Math.Round((double)t.Count / totalTags * 100, 0)%</span>
-                                    </div>
-                                    <div class="tag-bar">
-                                        <div class="tag-bar-fill" style="width: @Math.Round((double)t.Count / totalTags * 100, 0)%"></div>
-                                    </div>
-                                    <span class="tag-count">@t.Count uses</span>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="empty-state">
-                            <p>No tags yet</p>
-                            <span>Add tags to your entries</span>
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" md="6">
-            <MudCard Class="analytics-card list-card">
-                <MudCardHeader>
-                    <div class="card-header-content">
-                        <h3>Weekly Summary</h3>
-                    </div>
-                </MudCardHeader>
-                <MudCardContent>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span class="summary-label">This Week</span>
-                            <span class="summary-value">@entriesThisWeek</span>
-                            <span class="summary-sublabel">entries</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Total Entries</span>
-                            <span class="summary-value">@allEntries.Count</span>
-                            <span class="summary-sublabel">all time</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Avg per Week</span>
-                            <span class="summary-value">@Math.Round(avgEntriesPerWeek, 1)</span>
-                            <span class="summary-sublabel">entries</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Total Words</span>
-                            <span class="summary-value">@totalWords</span>
-                            <span class="summary-sublabel">written</span>
-                        </div>
-                    </div>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-    </MudGrid>
-
-</MudContainer>
+                </ul>
+            </div>
+        </div>
+    }
+</div>
 
 <style>
-    body, html {
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-        color: #fff;
-        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-        min-height: 100vh;
-    }
+/* 🌑 PAGE */
+.analytics-container {
+    min-height: 100vh;
+    padding: 30px 20px;
+    background-color: transparent;
+    color: var(--text-color);
+    font-family: 'Segoe UI', sans-serif;
+}
 
-    .analytics-dashboard {
-        padding: 32px 16px;
-    }
+/* HEADER */
+.analytics-container h1 {
+    text-align: center;
+    color: #ffcc00;
+    margin-bottom: 6px;
+}
 
-    /* ===== PAGE HEADER ===== */
-    .page-header {
-        text-align: center;
-        margin-bottom: 48px;
-        padding: 24px;
-        background: rgba(255, 215, 0, 0.05);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 215, 0, 0.1);
-    }
+.subtitle {
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 28px;
+}
 
-    .page-header h1 {
-        font-size: 2.8rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 8px;
-        letter-spacing: -0.5px;
-    }
+.empty {
+    text-align: center;
+    color: #888;
+}
 
-    .page-header p {
-        color: #b8b8b8;
-        font-size: 1.1rem;
-        font-weight: 500;
-    }
+/* 📌 SUMMARY */
+.summary-card {
+    max-width: 700px;
+    margin: 0 auto 36px;
+    padding: 22px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #000000, #1a1a1a);
+    border-left: 6px solid #ffcc00;
+    box-shadow: 0 8px 28px rgba(255, 204, 0, 0.15);
+}
 
-    /* ===== CARDS ===== */
-    .analytics-card {
-        background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 215, 0, 0.15);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        transition: all 0.3s ease;
-        height: 100%;
-    }
+.summary-card h2 {
+    color: #ffcc00;
+    margin-bottom: 14px;
+}
 
-    .analytics-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(255, 215, 0, 0.15);
-        border-color: rgba(255, 215, 0, 0.3);
-    }
+.summary-card p {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-size: 16px;
+}
 
-    /* ===== STAT CARDS ===== */
-    .stat-card .mud-card-content {
-        text-align: center;
-        padding: 32px 24px !important;
-    }
+.summary-card span {
+    color: #aaa;
+}
 
-    .stat-icon {
-        font-size: 3rem;
-        margin-bottom: 16px;
-        filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.3));
-    }
+/* GRID */
+.grid {
+    max-width: 900px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 22px;
+}
 
-    .stat-card h3 {
-        color: #cfcfcf;
-        font-size: 0.95rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 12px;
-    }
+/* CARDS */
+.card {
+    background: #121212;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255, 204, 0, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 204, 0, 0.12);
+}
 
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 8px 0;
-    }
+.card h3 {
+    color: #ffcc00;
+    margin-bottom: 14px;
+}
 
-    .stat-label {
-        color: #888;
-        font-size: 0.9rem;
-        margin-top: 8px;
-    }
+/* LIST */
+.card ul {
+    list-style: none;
+    padding: 0;
+}
 
-    /* ===== CHART CARDS ===== */
-    .chart-card .mud-card-header {
-        padding: 20px 24px !important;
-        border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-    }
+.card li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 204, 0, 0.25);
+    font-size: 15px;
+}
 
-    .card-header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .chart-card h3 {
-        color: #fff;
-        font-size: 1.2rem;
-        font-weight: 700;
-        margin: 0;
-    }
-
-    .chart-card .mud-card-content {
-        padding: 24px !important;
-    }
-
-    .chart-footer {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 215, 0, 0.1);
-        text-align: center;
-    }
-
-    .metric-label {
-        color: #888;
-        font-size: 0.9rem;
-        margin-right: 8px;
-    }
-
-    .metric-value {
-        color: #ffd700;
-        font-size: 1.1rem;
-        font-weight: 700;
-    }
-
-    /* ===== EMPTY STATE ===== */
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-    }
-
-    .empty-state p {
-        color: #888;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-
-    .empty-state span {
-        color: #666;
-        font-size: 0.9rem;
-    }
-
-    /* ===== LIST CARDS ===== */
-    .list-card .mud-card-header {
-        padding: 20px 24px !important;
-        border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-    }
-
-    .list-card .mud-card-content {
-        padding: 24px !important;
-    }
-
-    /* ===== TAGS ===== */
-    .tags-container {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .tag-item {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .tag-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .tag-name {
-        color: #fff;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .tag-percentage {
-        color: #ffd700;
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-
-    .tag-bar {
-        height: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .tag-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
-        border-radius: 10px;
-        transition: width 0.6s ease;
-    }
-
-    .tag-count {
-        color: #888;
-        font-size: 0.85rem;
-    }
-
-    /* ===== WEEKLY SUMMARY ===== */
-    .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .summary-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        background: rgba(255, 215, 0, 0.05);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 215, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    .summary-item:hover {
-        background: rgba(255, 215, 0, 0.1);
-        border-color: rgba(255, 215, 0, 0.2);
-    }
-
-    .summary-label {
-        color: #888;
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
-
-    .summary-value {
-        font-size: 2rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 4px 0;
-    }
-
-    .summary-sublabel {
-        color: #666;
-        font-size: 0.8rem;
-    }
-
-    /* ===== MUD CHART OVERRIDES ===== */
-    .mud-chart text {
-        fill: #fff !important;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    /* ===== RESPONSIVE ===== */
-    @@media (max-width: 960px) {
-        .page-header h1 {
-            font-size: 2.2rem;
-        }
-
-        .summary-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+.card li span {
+    font-weight: bold;
+    color: #ffcc00;
+}
 </style>
 
 @code {
     List<JournalEntry> allEntries = new();
-
     List<(string Mood, int Count)> moodCounts = new();
-    string mostFrequentMood = "No entries yet";
+    List<(string Category, int Count)> categoryCounts = new();
 
-    List<DateTime> missedDays = new();
-
-    List<TagInfo> tagCounts = new();
-    int totalTags = 0;
-
-    List<(DateTime EntryDate, int WordCount)> wordCountsOverTime = new();
-    double avgWordCount = 0;
-
-    int currentStreak = 0;
-    int entriesThisWeek = 0;
-    double avgEntriesPerWeek = 0;
+    string mostFrequentMood = "";
     int totalWords = 0;
+    double avgWordCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -483,132 +162,39 @@
         if (!allEntries.Any())
             return;
 
-        ComputeMoodDistribution();
-        ComputeMostFrequentMood();
-        ComputeMissedDays();
-        ComputeTags();
-        ComputeWordCounts();
-        ComputeStreak();
-        ComputeWeeklySummary();
+        ComputeMoodData();
+        ComputeCategoryData();
+        ComputeWordData();
     }
 
-    void ComputeMoodDistribution()
+    void ComputeMoodData()
     {
         moodCounts = allEntries
-            .Where(e => !string.IsNullOrWhiteSpace(e.PrimaryMood))
-            .GroupBy(e => e.PrimaryMood!)
-            .Select(g => (g.Key, g.Count()))
+            .Select(e => string.IsNullOrWhiteSpace(e.PrimaryMood) ? "Unknown" : e.PrimaryMood.Trim())
+            .GroupBy(m => m)
+            .Select(g => (Mood: g.Key, Count: g.Count()))
+            .OrderByDescending(g => g.Count)
+            .ToList();
+
+        mostFrequentMood = moodCounts.First().Mood;
+    }
+
+    void ComputeCategoryData()
+    {
+        categoryCounts = allEntries
+            .Select(e => string.IsNullOrWhiteSpace(e.Category) ? "Unknown" : e.Category.Trim())
+            .GroupBy(c => c)
+            .Select(g => (Category: g.Key, Count: g.Count()))
             .ToList();
     }
 
-    void ComputeMostFrequentMood()
+    void ComputeWordData()
     {
-        var mood = allEntries
-            .Where(e => !string.IsNullOrWhiteSpace(e.PrimaryMood))
-            .GroupBy(e => e.PrimaryMood!)
-            .OrderByDescending(g => g.Count())
-            .FirstOrDefault();
-
-        if (mood != null)
-            mostFrequentMood = mood.Key;
-    }
-
-    void ComputeMissedDays()
-    {
-        var validDates = allEntries
-            .Where(e => e.EntryDate != default)
-            .Select(e => e.EntryDate.Date)
-            .Distinct()
-            .ToList();
-
-        if (!validDates.Any()) return;
-
-        var start = validDates.Min();
-        var end = DateTime.Today;
-
-        missedDays = Enumerable.Range(0, (end - start).Days + 1)
-            .Select(d => start.AddDays(d))
-            .Except(validDates)
-            .ToList();
-    }
-
-    void ComputeTags()
-    {
-        var tags = allEntries
-            .Where(e => !string.IsNullOrWhiteSpace(e.Tags))
-            .SelectMany(e => e.Tags!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-
-        tagCounts = tags
-            .GroupBy(t => t)
-            .Select(g => new TagInfo { Tag = g.Key, Count = g.Count() })
-            .OrderByDescending(t => t.Count)
-            .ToList();
-
-        totalTags = tagCounts.Sum(t => t.Count);
-    }
-
-    void ComputeWordCounts()
-    {
-        wordCountsOverTime = allEntries
+        var wordCounts = allEntries
             .Where(e => !string.IsNullOrWhiteSpace(e.Content))
-            .OrderBy(e => e.EntryDate)
-            .Select(e => (
-                e.EntryDate,
-                e.Content!.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length
-            ))
-            .ToList();
+            .Select(e => e.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
 
-        avgWordCount = wordCountsOverTime.Any()
-            ? wordCountsOverTime.Average(w => w.WordCount)
-            : 0;
-
-        totalWords = wordCountsOverTime.Sum(w => w.WordCount);
-    }
-
-    void ComputeStreak()
-    {
-        var dates = allEntries
-            .Where(e => e.EntryDate != default)
-            .Select(e => e.EntryDate.Date)
-            .Distinct()
-            .OrderByDescending(d => d)
-            .ToList();
-
-        if (!dates.Any()) return;
-
-        currentStreak = 1;
-        var checkDate = DateTime.Today;
-
-        if (!dates.Contains(checkDate))
-        {
-            currentStreak = 0;
-            return;
-        }
-
-        foreach (var date in dates.Skip(1))
-        {
-            if (date == checkDate.AddDays(-1))
-            {
-                currentStreak++;
-                checkDate = date;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    void ComputeWeeklySummary()
-    {
-        var weekAgo = DateTime.Today.AddDays(-7);
-        entriesThisWeek = allEntries.Count(e => e.EntryDate >= weekAgo);
-
-        if (allEntries.Any())
-        {
-            var firstEntry = allEntries.Min(e => e.EntryDate);
-            var weeks = Math.Max(1, (DateTime.Today - firstEntry).Days / 7.0);
-            avgEntriesPerWeek = allEntries.Count / weeks;
-        }
+        totalWords = wordCounts.Sum();
+        avgWordCount = wordCounts.Any() ? wordCounts.Average() : 0;
     }
 }

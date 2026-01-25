@@ -83,6 +83,34 @@ h1:focus {
 .status-bar-safe-area {
     display: none;
 }
+/* GLOBAL THEME VARIABLES */
+.light-theme {
+    --bg-color: #ffffff;
+    --text-color: #111111;
+    --section-bg: #f7f7f7;
+    --accent-yellow: #ffd400;
+    --btn-primary-bg: #ffd400;
+    --btn-primary-text: #111111;
+    --input-bg: #ffffff;
+    --input-text: #111111;
+}
+
+.dark-theme {
+    --bg-color: #0b0b0b;
+    --text-color: #f5f5f5;
+    --section-bg: #141414;
+    --accent-yellow: #ffd400;
+    --btn-primary-bg: #ffd400;
+    --btn-primary-text: #0b0b0b;
+    --input-bg: #1c1c1c;
+    --input-text: #ffffff;
+}
+
+body, .app-container {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
 
 @supports (-webkit-touch-callout: none) {
     .status-bar-safe-area {
@@ -98,4 +126,5 @@ h1:focus {
     .flex-column, .navbar-brand {
         padding-left: env(safe-area-inset-left);
     }
+    
 }

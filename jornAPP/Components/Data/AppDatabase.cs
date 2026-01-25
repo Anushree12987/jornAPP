@@ -23,6 +23,7 @@ public class AppDatabase
             Connection.CreateTableAsync<JournalEntry>().Wait();
             Connection.CreateTableAsync<Tag>().Wait();
             Connection.CreateTableAsync<EntryTag>().Wait();
+            
         }
         // ===== Helper Methods =====
 
@@ -45,25 +46,32 @@ public class AppDatabase
         }
 
         // Get all entries for a user (optionally by date range)
+        // Get all entries for a user (optionally by date range)
         public async Task<List<JournalEntry>> GetJournalEntriesAsync(int userId, DateTime? from = null, DateTime? to = null)
         {
-            var query = Connection.Table<JournalEntry>().Where(x => x.UserId == userId);
+            // Get all entries for the user first
+            var allEntries = await Connection.Table<JournalEntry>()
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
 
+            // Filter by date in memory (after retrieving from database)
             if (from.HasValue)
-                query = query.Where(x => x.EntryDate.Date >= from.Value.Date);
+                allEntries = allEntries.Where(x => x.EntryDate.Date >= from.Value.Date).ToList();
 
             if (to.HasValue)
-                query = query.Where(x => x.EntryDate.Date <= to.Value.Date);
+                allEntries = allEntries.Where(x => x.EntryDate.Date <= to.Value.Date).ToList();
 
-            return await query.ToListAsync();
+            return allEntries.OrderByDescending(x => x.EntryDate).ToList();
         }
 
-        // Get a single entry by date
-        public Task<JournalEntry> GetEntryByDateAsync(int userId, DateTime date)
+// Get a single entry by date
+        public async Task<JournalEntry> GetEntryByDateAsync(int userId, DateTime date)
         {
-            return Connection.Table<JournalEntry>()
-                .Where(x => x.UserId == userId && x.EntryDate.Date == date.Date)
-                .FirstOrDefaultAsync();
+            var allEntries = await Connection.Table<JournalEntry>()
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
+
+            return allEntries.FirstOrDefault(x => x.EntryDate.Date == date.Date);
         }
 
         // Get all tags

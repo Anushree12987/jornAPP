@@ -17,45 +17,47 @@
     <textarea id="content" placeholder="Write your entry here..." @bind="entry.Content" class="form-control mb-3" rows="10"></textarea>
 
     <!-- Primary Mood -->
+    <!-- Primary Mood -->
     <label>Primary Mood</label>
     <select @bind="entry.PrimaryMood" class="form-select mb-3">
         <option value="">Select Primary Mood</option>
-        <option>😊 Happy</option>
-        <option>😌 Calm</option>
-        <option>😐 Okay</option>
-        <option>😔 Sad</option>
-        <option>😤 Stressed</option>
+        <option value="😊 Happy">😊 Happy</option>
+        <option value="😌 Calm">😌 Calm</option>
+        <option value="😐 Okay">😐 Okay</option>
+        <option value="😔 Sad">😔 Sad</option>
+        <option value="😤 Stressed">😤 Stressed</option>
     </select>
 
     <!-- Secondary Moods -->
     <label>Secondary Mood 1</label>
     <select @bind="entry.SecondaryMood1" class="form-select mb-3">
         <option value="">Select Secondary Mood 1</option>
-        <option>😊 Happy</option>
-        <option>😌 Calm</option>
-        <option>😐 Okay</option>
-        <option>😔 Sad</option>
-        <option>😤 Stressed</option>
+        <option value="😊 Happy">😊 Happy</option>
+        <option value="😌 Calm">😌 Calm</option>
+        <option value="😐 Okay">😐 Okay</option>
+        <option value="😔 Sad">😔 Sad</option>
+        <option value="😤 Stressed">😤 Stressed</option>
     </select>
 
     <label>Secondary Mood 2</label>
     <select @bind="entry.SecondaryMood2" class="form-select mb-3">
         <option value="">Select Secondary Mood 2</option>
-        <option>😊 Happy</option>
-        <option>😌 Calm</option>
-        <option>😐 Okay</option>
-        <option>😔 Sad</option>
-        <option>😤 Stressed</option>
+        <option value="😊 Happy">😊 Happy</option>
+        <option value="😌 Calm">😌 Calm</option>
+        <option value="😐 Okay">😐 Okay</option>
+        <option value="😔 Sad">😔 Sad</option>
+        <option value="😤 Stressed">😤 Stressed</option>
     </select>
 
     <!-- Category -->
     <label>Category</label>
     <select @bind="entry.Category" class="form-select mb-3">
         <option value="">Select Category</option>
-        <option>Positive</option>
-        <option>Neutral</option>
-        <option>Negative</option>
+        <option value="Positive">Positive</option>
+        <option value="Neutral">Neutral</option>
+        <option value="Negative">Negative</option>
     </select>
+
 
     <!-- Tags -->
     <label>Tags</label>
@@ -69,12 +71,6 @@
 </div>
 
 <style>
-body {
-    background: #121212;
-    color: #fff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-}
 
 h1 {
     text-align: center;
@@ -178,10 +174,27 @@ button.btn-secondary:hover {
 
     async Task SaveEntry()
     {
+        // Trim strings
+        entry.Title = entry.Title?.Trim();
+        entry.Content = entry.Content?.Trim();
+        entry.PrimaryMood = entry.PrimaryMood?.Trim();
+        entry.SecondaryMood1 = entry.SecondaryMood1?.Trim();
+        entry.SecondaryMood2 = entry.SecondaryMood2?.Trim();
+        entry.Category = entry.Category?.Trim();
+        entry.Tags = entry.Tags?.Trim();
+
+        // ✅ Set defaults if not selected
+        if (string.IsNullOrWhiteSpace(entry.PrimaryMood))
+            entry.PrimaryMood = "Unknown";
+
+        if (string.IsNullOrWhiteSpace(entry.Category))
+            entry.Category = "Unknown";
+
         var existing = await JournalService.GetEntryByDateAsync(entry.EntryDate);
 
         if (existing != null)
         {
+            // Update existing entry
             existing.Title = entry.Title;
             existing.Content = entry.Content;
             existing.PrimaryMood = entry.PrimaryMood;
@@ -189,7 +202,6 @@ button.btn-secondary:hover {
             existing.SecondaryMood2 = entry.SecondaryMood2;
             existing.Category = entry.Category;
             existing.Tags = entry.Tags;
-            existing.UpdatedAt = DateTime.Now;
 
             await JournalService.UpdateEntryAsync(existing);
         }
@@ -198,11 +210,14 @@ button.btn-secondary:hover {
             entry.CreatedAt = DateTime.Now;
             entry.UpdatedAt = DateTime.Now;
 
+            // ✅ Add new entry via JournalService
             await JournalService.AddEntryAsync(entry);
         }
 
         Nav.NavigateTo("/entries");
     }
+
+
 
     void Cancel() => Nav.NavigateTo("/entries");
 }

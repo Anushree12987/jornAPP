@@ -1,19 +1,33 @@
-﻿@inherits LayoutComponentBase
+﻿@using jornAPP.Services
+@inherits LayoutComponentBase
+@inject ThemeService ThemeService
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
-    
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="app-container @(ThemeService.IsDark ? "dark-theme" : "light-theme")">
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-    
+        <main>
+            <div class="top-row px-4 navbar navbar-dark">
+                <a class="navbar-brand" href="">jornAPP</a>
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= StateHasChanged;
+    }
+}

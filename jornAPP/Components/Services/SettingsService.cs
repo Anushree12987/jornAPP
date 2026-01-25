@@ -5,6 +5,9 @@ using System.Text;
 using jornAPP.Components.Data;
 using jornAPP.Components.Models;
 using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
+using QuestPDF.Helpers;
+using System.IO;
 
 namespace jornAPP.Services
 {
@@ -44,32 +47,43 @@ namespace jornAPP.Services
             return (Encoding.UTF8.GetBytes(sb.ToString()), $"Journal_{from:yyyyMMdd}_{to:yyyyMMdd}.csv");
         }
 
-        // PDF export
+        // PDF export with QuestPDF (works on Mac Catalyst)
         public (byte[] data, string filename) ExportPdf(DateTime from, DateTime to)
         {
             var entries = GetEntries(from, to);
+            if (entries == null || entries.Count == 0)
+                throw new Exception("No entries to export");
 
-            var doc = Document.Create(container =>
+            var pdfBytes = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Margin(20);
-                    page.Header().Text($"Journal Entries from {from:dd/MM/yyyy} to {to:dd/MM/yyyy}").SemiBold().FontSize(16);
-
+                    page.Size(PageSizes.A4);
+                    page.Margin(30);
                     page.Content().Column(col =>
                     {
+                        col.Item().Text($"Journal Entries from {from:dd/MM/yyyy} to {to:dd/MM/yyyy}")
+                            .FontSize(18)
+                            .Bold()
+                            .AlignCenter();
+
+                        col.Item().LineHorizontal(1);
+
                         foreach (var e in entries)
                         {
-                            col.Item().Text($"{e.EntryDate:yyyy-MM-dd} - {e.Title} - {e.PrimaryMood}");
-                            col.Item().Text(e.Content);
-                            col.Item().Text($"Tags: {e.Tags} | Category: {e.Category}").Italic();
-                            col.Item().PaddingVertical(5).LineHorizontal(1);
+                            col.Item().Text($"Date: {e.EntryDate:yyyy-MM-dd}").FontSize(12).Bold();
+                            col.Item().Text($"Title: {e.Title ?? ""}").FontSize(12);
+                            col.Item().Text($"Content: {e.Content ?? ""}").FontSize(12);
+                            col.Item().Text($"Tags: {e.Tags ?? ""} | Category: {e.Category ?? ""}")
+                                .FontSize(10)
+                                .Italic();
+                            col.Item().LineHorizontal(0.5f);
                         }
                     });
                 });
-            });
+            }).GeneratePdf();
 
-            return (doc.GeneratePdf(), $"Journal_{from:yyyyMMdd}_{to:yyyyMMdd}.pdf");
+            return (pdfBytes, $"Journal_{from:yyyyMMdd}_{to:yyyyMMdd}.pdf");
         }
     }
 }

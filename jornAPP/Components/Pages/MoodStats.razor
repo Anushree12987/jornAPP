@@ -2,26 +2,54 @@
 @using jornAPP.Components.Models
 @using jornAPP.Services
 @inject JournalService JournalService
-@inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject ThemeService ThemeService
 
-<div class="stats-container">
+<div class="stats-container @(ThemeService.IsDark ? "dark-theme" : "light-theme")">
 
     <!-- Top Navigation -->
     <nav class="top-nav">
-        <button type="button" class="btn-nav" @onclick="GoToHome">🏠 Home</button>
-        <button type="button" class="btn-nav" @onclick="GoToEntries">📖 Entries</button>
-        <button type="button" class="btn-nav" @onclick="GoToAddEntry">📝 Add Entry</button>
-        <button type="button" class="btn-nav" @onclick="GoToAnalytics">📊 Analytics</button>
+        <button class="btn-nav" @onclick="GoToHome">🏠 Home</button>
+        <button class="btn-nav" @onclick="GoToEntries">📖 Entries</button>
+        <button class="btn-nav" @onclick="GoToAddEntry">📝 Add Entry</button>
+        <button class="btn-nav" @onclick="GoToAnalytics">📊 Analytics</button>
     </nav>
 
     <h1 class="page-title">📊 Mood Analytics</h1>
     <p class="subtitle">Track your emotions and journal habits over time.</p>
 
-    <!-- Mood Chart -->
+    <!-- Mood Distribution Pie Chart -->
     <div class="card">
-        <h2>😊 Mood Tracker</h2>
-        <canvas id="moodChart"></canvas>
+        <h2>😊 Mood Distribution</h2>
+        <svg viewBox="-1 -1 2 2" style="transform: rotate(-90deg)" width="300" height="300">
+            @foreach (var slice in MoodSlices)
+            {
+                <path d="@GetArcPath(slice.StartAngle, slice.EndAngle)" fill="@slice.Color"></path>
+            }
+        </svg>
+        <ul>
+            @foreach (var slice in MoodSlices)
+            {
+                <li style="color:@slice.Color">@slice.Label: @slice.Count</li>
+            }
+        </ul>
+    </div>
+
+    <!-- Category Distribution Pie Chart -->
+    <div class="card">
+        <h2>🎯 Category Distribution</h2>
+        <svg viewBox="-1 -1 2 2" style="transform: rotate(-90deg)" width="300" height="300">
+            @foreach (var slice in CategorySlices)
+            {
+                <path d="@GetArcPath(slice.StartAngle, slice.EndAngle)" fill="@slice.Color"></path>
+            }
+        </svg>
+        <ul>
+            @foreach (var slice in CategorySlices)
+            {
+                <li style="color:@slice.Color">@slice.Label: @slice.Count</li>
+            }
+        </ul>
     </div>
 
     <!-- Streaks -->
@@ -31,320 +59,138 @@
         <p>Longest Streak: <strong>@longestStreak</strong> days</p>
     </div>
 
-    <!-- Trends -->
-    <div class="card">
-        <h2>📈 Mood Trends</h2>
-        <canvas id="trendChart"></canvas>
-    </div>
-
-    <!-- Back Button -->
+    <!-- Back Buttons -->
     <div class="back-button-container">
-        <button type="button" class="btn-back" @onclick="GoToEntries">
-            ← Back to Entries
-        </button>
-        <button type="button" class="btn-back" @onclick="GoToHome">
-            ← Back to Home
-        </button>
+        <button class="btn-back" @onclick="GoToEntries">← Back to Entries</button>
+        <button class="btn-back" @onclick="GoToHome">← Back to Home</button>
     </div>
-
 </div>
 
 <style>
-    body {
-        background: #121212;
-        color: #fff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-    }
-
-    .stats-container {
-        max-width: 800px;
-        margin: 50px auto;
-        padding: 20px;
-    }
-
-    /* Top Navigation */
-    .top-nav {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-    }
-
-    .btn-nav {
-        background: #ffd700;
-        color: #121212;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        font-size: 0.95rem;
-    }
-
-    .btn-nav:hover {
-        opacity: 0.85;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-    }
-
-    .btn-nav:active {
-        transform: translateY(0px);
-    }
-
-    /* Page Title */
-    .page-title {
-        font-size: 2.5rem;
-        color: #ffd700;
-        text-align: center;
-        margin-bottom: 5px;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
-    }
-
-    .subtitle {
-        color: #e0e0e0;
-        text-align: center;
-        margin-bottom: 30px;
-        font-size: 1.1rem;
-    }
-
-    /* Cards */
-    .card {
-        background: #2a2a2a;
-        border-radius: 16px;
-        padding: 28px 30px;
-        margin-bottom: 28px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-        color: #ffffff;
-    }
-
-    /* Card headings */
-    .card h2 {
-        color: #ffd700;
-        margin-bottom: 16px;
-        font-size: 1.5rem;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
-    }
-
-    /* Streak numbers */
-    .card p {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #ffffff;
-        margin: 6px 0;
-    }
-
-    .card p strong {
-        color: #ffd700;
-        font-size: 1.4rem;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-    }
-
-    /* Canvas charts */
-    canvas {
-        background: #1e1e1e;
-        border-radius: 12px;
-        box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
-        padding: 10px;
-        width: 100%;
-    }
-
-    /* Back Button Container */
-    .back-button-container {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 40px;
-        padding-top: 30px;
-        border-top: 1px solid #444;
-        flex-wrap: wrap;
-    }
-
-    .btn-back {
-        background: #333;
-        color: #ffd700;
-        border: 2px solid #ffd700;
-        padding: 12px 24px;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        font-size: 0.95rem;
-    }
-
-    .btn-back:hover {
-        background: #ffd700;
-        color: #121212;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-    }
-
-    .btn-back:active {
-        transform: translateY(0px);
-    }
-
-    /* Responsive */
-    @@media (max-width: 600px) {
-        .page-title {
-            font-size: 2rem;
-        }
-
-        .top-nav {
-            gap: 10px;
-        }
-
-        .btn-nav {
-            padding: 8px 16px;
-            font-size: 0.85rem;
-        }
-    }
+.stats-container { max-width: 900px; margin: 50px auto; padding: 20px; font-family: 'Segoe UI', sans-serif; }
+.top-nav { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; }
+.btn-nav { background: #ffd700; color: #121212; border: none; padding: 10px 22px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.btn-nav:hover { opacity: 0.85; transform: translateY(-2px); }
+.page-title { font-size: 2.5rem; text-align: center; color: #ffd700; margin-bottom: 5px; }
+.subtitle { text-align: center; color: #e0e0e0; font-size: 1.1rem; margin-bottom: 30px; }
+.card { background: #141414; border-radius: 16px; padding: 28px 30px; margin-bottom: 28px; box-shadow: 0 12px 30px rgba(255, 204, 0, 0.6); color: #fff; text-align: center; }
+.card h2 { color: #ffd700; margin-bottom: 16px; }
+.card p { font-size: 1.2rem; margin: 6px 0; }
+.card p strong { color: #ffd700; font-size: 1.4rem; }
+.card ul { list-style: none; padding: 0; margin-top: 10px; }
+.card ul li { font-size: 1.1rem; margin: 4px 0; }
+.back-button-container { display: flex; justify-content: center; gap: 15px; margin-top: 40px; flex-wrap: wrap; }
+.btn-back { background: #121212; color: #ffd700; border: 2px solid #ffd700; padding: 12px 26px; border-radius: 12px; cursor: pointer; }
+.btn-back:hover { background: #ffd700; color: #121212; }
+.dark-theme { background-color: #0b0b0b; color: #f5f5f5; }
+.light-theme { background-color: #ffffff; color: #111111; }
 </style>
 
 @code {
-private List<JournalEntry> entries = new();
-private Dictionary<string, int> moodCounts = new();
+    private List<JournalEntry> entries = new();
+    private List<PieSlice> MoodSlices = new();
+    private List<PieSlice> CategorySlices = new();
+    private int currentStreak;
+    private int longestStreak;
 
-private int currentStreak;
-private int longestStreak;
-private bool rendered;
+    protected override async Task OnInitializedAsync()
+    {
+        entries = await JournalService.GetAllEntriesAsync();
 
-protected override async Task OnInitializedAsync()
-{
-entries = await JournalService.GetAllEntriesAsync();
-CalculateMoodCounts();
-CalculateStreaks();
-}
+        PrepareMoodSlices();
+        PrepareCategorySlices();
+        CalculateStreaks();
+    }
 
-protected override async Task OnAfterRenderAsync(bool firstRender)
-{
-if (firstRender && !rendered)
-{
-rendered = true;
+    private void PrepareMoodSlices()
+    {
+        var moods = new[] { "😊 Happy", "😌 Calm", "😐 Okay", "😔 Sad", "😤 Stressed" };
+        var colors = new[] { "#4caf50", "#2196f3", "#ff9800", "#9c27b0", "#f44336" };
+        int total = entries.Count;
+        double startAngle = 0;
 
-try
-{
-await JS.InvokeVoidAsync(
-"renderMoodChart",
-moodCounts.Keys.ToArray(),
-moodCounts.Values.ToArray()
-);
+        MoodSlices = moods.Select((m, i) =>
+        {
+            int count = entries.Count(e => e.PrimaryMood == m);
+            double angle = total == 0 ? 0 : (double)count / total * 360;
+            var slice = new PieSlice
+            {
+                Label = m,
+                Count = count,
+                Color = colors[i],
+                StartAngle = startAngle,
+                EndAngle = startAngle + angle
+            };
+            startAngle += angle;
+            return slice;
+        }).ToList();
+    }
 
-var ordered = entries.OrderBy(e => e.EntryDate).ToList();
+    private void PrepareCategorySlices()
+    {
+        var categories = new[] { "Positive", "Neutral", "Negative" };
+        var colors = new[] { "#4caf50", "#ff9800", "#f44336" };
+        int total = entries.Count;
+        double startAngle = 0;
 
-await JS.InvokeVoidAsync(
-"renderTrendChart",
-ordered.Select(e => e.EntryDate.ToString("MM/dd")).ToArray(),
-ordered.Select(e => MoodToNumber(e.PrimaryMood)).ToArray()
-);
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Chart rendering error: {ex.Message}");
-}
-}
-}
+        CategorySlices = categories.Select((c, i) =>
+        {
+            int count = entries.Count(e => e.Category == c);
+            double angle = total == 0 ? 0 : (double)count / total * 360;
+            var slice = new PieSlice
+            {
+                Label = c,
+                Count = count,
+                Color = colors[i],
+                StartAngle = startAngle,
+                EndAngle = startAngle + angle
+            };
+            startAngle += angle;
+            return slice;
+        }).ToList();
+    }
 
-private void CalculateMoodCounts()
-{
-moodCounts.Clear();
+    private void CalculateStreaks()
+    {
+        if (!entries.Any()) return;
+        var dates = entries.Select(e => e.EntryDate.Date).Distinct().OrderBy(d => d).ToList();
+        int streak = 1;
+        currentStreak = 1;
+        longestStreak = 1;
+        for (int i = 1; i < dates.Count; i++)
+        {
+            if ((dates[i] - dates[i - 1]).Days == 1)
+            {
+                streak++;
+                currentStreak = streak;
+                longestStreak = Math.Max(longestStreak, streak);
+            }
+            else streak = 1;
+        }
+    }
 
-foreach (var entry in entries)
-{
-if (!string.IsNullOrWhiteSpace(entry.PrimaryMood))
-{
-moodCounts.TryAdd(entry.PrimaryMood, 0);
-moodCounts[entry.PrimaryMood]++;
-}
-}
-}
+    private string GetArcPath(double startAngle, double endAngle)
+    {
+        double rad(double deg) => deg * Math.PI / 180;
+        double x1 = Math.Cos(rad(startAngle));
+        double y1 = Math.Sin(rad(startAngle));
+        double x2 = Math.Cos(rad(endAngle));
+        double y2 = Math.Sin(rad(endAngle));
+        bool largeArc = endAngle - startAngle > 180;
+        return $"M 0 0 L {x1} {y1} A 1 1 0 {(largeArc ? 1 : 0)} 1 {x2} {y2} Z";
+    }
 
-private void CalculateStreaks()
-{
-if (!entries.Any()) return;
+    private void GoToHome() => NavigationManager.NavigateTo("/");
+    private void GoToEntries() => NavigationManager.NavigateTo("/entries");
+    private void GoToAddEntry() => NavigationManager.NavigateTo("/addentry");
+    private void GoToAnalytics() => NavigationManager.NavigateTo("/analytics");
 
-var dates = entries
-.Select(e => e.EntryDate.Date)
-.Distinct()
-.OrderBy(d => d)
-.ToList();
-
-int streak = 1;
-currentStreak = 1;
-longestStreak = 1;
-
-for (int i = 1; i < dates.Count; i++)
-{
-if ((dates[i] - dates[i - 1]).Days == 1)
-{
-streak++;
-currentStreak = streak;
-longestStreak = Math.Max(longestStreak, streak);
-}
-else
-{
-streak = 1;
-}
-}
-}
-
-private int MoodToNumber(string mood) => mood switch
-{
-"😊 Happy" => 5,
-"😌 Calm" => 4,
-"😐 Okay" => 3,
-"😔 Sad" => 2,
-"😤 Stressed" => 1,
-_ => 3
-};
-
-// Navigation methods
-private void GoToHome()
-{
-try
-{
-NavigationManager.NavigateTo("/");
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Navigation error: {ex.Message}");
-}
-}
-
-private void GoToEntries()
-{
-try
-{
-NavigationManager.NavigateTo("/entries");
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Navigation error: {ex.Message}");
-}
-}
-
-private void GoToAddEntry()
-{
-try
-{
-NavigationManager.NavigateTo("/addentry");
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Navigation error: {ex.Message}");
-}
-}
-
-private void GoToAnalytics()
-{
-try
-{
-NavigationManager.NavigateTo("/analytics");
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Navigation error: {ex.Message}");
-}
-}
+    public class PieSlice
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+        public string Color { get; set; } = "#4caf50";
+        public double StartAngle { get; set; }
+        public double EndAngle { get; set; }
+    }
 }
