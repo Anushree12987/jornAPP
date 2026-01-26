@@ -5,24 +5,31 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
+<!-- Page Heading -->
 <h1>Add Journal Entry</h1>
 
+<!-- Main Form Container -->
 <div class="form-container">
 
-    <!-- Title -->
+    <!-- Title Input -->
     <label for="title">Title</label>
-    <input id="title" placeholder="Enter title..." @bind="entry.Title" class="form-control mb-3" />
+    <input id="title" placeholder="Enter title..." 
+           @bind="entry.Title" 
+           class="form-control mb-3" />
+    <!-- @bind automatically binds the input value to entry.Title -->
 
-    <!-- Toolbar -->
+    <!-- Rich Text Editor Toolbar -->
     <label for="content">Your Thoughts</label>
     <div id="contentToolbar">
         <span class="ql-formats">
+            <!-- Basic text formatting buttons -->
             <button class="ql-bold">B</button>
             <button class="ql-italic">I</button>
             <button class="ql-underline">U</button>
             <button class="ql-strike">S</button>
         </span>
         <span class="ql-formats">
+            <!-- Header formatting dropdown -->
             <select class="ql-header">
                 <option selected value="">Normal</option>
                 <option value="1">H1</option>
@@ -31,20 +38,23 @@
             </select>
         </span>
         <span class="ql-formats">
+            <!-- Lists -->
             <button class="ql-list" value="ordered">OL</button>
             <button class="ql-list" value="bullet">UL</button>
         </span>
         <span class="ql-formats">
+            <!-- Link insertion -->
             <button class="ql-link">Link</button>
         </span>
     </div>
 
-    <!-- Editor -->
-    <div id="contentEditor" class="form-control mb-3 ql-snow" style="height: 250px;"></div>
-    
+    <!-- Quill Editor Container -->
+    <div id="contentEditor" 
+         class="form-control mb-3 ql-snow" 
+         style="height: 250px;"></div>
+    <!-- Quill editor will replace this div using JavaScript -->
 
-    <!-- Primary Mood -->
-    <!-- Primary Mood -->
+    <!-- Mood Selection -->
     <label>Primary Mood</label>
     <select @bind="entry.PrimaryMood" class="form-select mb-3">
         <option value="">Select Primary Mood</option>
@@ -55,7 +65,6 @@
         <option value="😤 Stressed">😤 Stressed</option>
     </select>
 
-    <!-- Secondary Moods -->
     <label>Secondary Mood 1</label>
     <select @bind="entry.SecondaryMood1" class="form-select mb-3">
         <option value="">Select Secondary Mood 1</option>
@@ -76,7 +85,7 @@
         <option value="😤 Stressed">😤 Stressed</option>
     </select>
 
-    <!-- Category -->
+    <!-- Category Selection -->
     <label>Category</label>
     <select @bind="entry.Category" class="form-select mb-3">
         <option value="">Select Category</option>
@@ -85,16 +94,16 @@
         <option value="Negative">Negative</option>
     </select>
 
-
-    <!-- Tags -->
-    <!-- Tags -->
+    <!-- Tags Input -->
     <label>Tags</label>
     <input placeholder="Add tags, comma-separated"
            @bind="entry.Tags"
            class="form-control mb-2" />
+    <!-- Users can type custom tags here -->
 
     <p class="tag-hint">Click to add tags:</p>
 
+    <!-- Predefined Tags -->
     <div class="tag-list">
         @foreach (var tag in predefinedTags)
         {
@@ -104,151 +113,56 @@
             </span>
         }
     </div>
+    <!-- Clicking a tag adds/removes it from entry.Tags -->
 
-    <!-- Buttons -->
+    <!-- Action Buttons -->
     <div class="button-group">
         <button class="btn btn-primary" @onclick="SaveEntry">Save</button>
         <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
     </div>
 </div>
 
+<!-- CSS Styling -->
 <style>
+    /* Page heading styling */
+    h1 { text-align: center; font-size: 2.5rem; color: #ffd700; margin: 30px 0 20px 0; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); }
 
-h1 {
-    text-align: center;
-    font-size: 2.5rem;
-    color: #ffd700;
-    margin: 30px 0 20px 0;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
-}
+    /* Form container styling */
+    .form-container { max-width: 700px; margin: 0 auto 50px auto; padding: 25px 30px; background: #1e1e1e; border-radius: 16px; box-shadow: 0 12px 25px rgba(0,0,0,0.5); }
 
-.form-container {
-    max-width: 700px;
-    margin: 0 auto 50px auto;
-    padding: 25px 30px;
-    background: #1e1e1e;
-    border-radius: 16px;
-    box-shadow: 0 12px 25px rgba(0,0,0,0.5);
-}
+    /* Label styling */
+    label { display: block; font-weight: 600; margin-bottom: 6px; color: #ffd700; }
 
-label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #ffd700;
-}
+    /* Input and select styling */
+    .form-control, .form-select { width: 100%; background: #2a2a2a; color: #ffffff; border: 1px solid #444; border-radius: 12px; padding: 12px 14px; font-size: 1rem; transition: all 0.2s ease-in-out; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
+    .form-control::placeholder, .form-select option { color: #ccc; }
+    .form-control:focus, .form-select:focus { outline: none; border-color: #ffd700; box-shadow: 0 0 8px #ffd700; }
 
-.form-control, .form-select {
-    width: 100%;
-    background: #2a2a2a;
-    color: #ffffff;
-    border: 1px solid #444;
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-size: 1rem;
-    transition: all 0.2s ease-in-out;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-}
+    /* Button group styling */
+    .button-group { display: flex; justify-content: center; gap: 20px; margin-top: 25px; }
+    button.btn-primary { background: #ffd700; color: #121212; border: none; padding: 12px 28px; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s ease-in-out; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+    button.btn-primary:hover { opacity: 0.95; transform: translateY(-2px); }
+    button.btn-secondary { background: #2a2a2a; color: #ffffff; border: 2px solid #ffd700; padding: 12px 28px; border-radius: 14px; cursor: pointer; font-weight: 600; transition: all 0.2s ease-in-out; }
+    button.btn-secondary:hover { background: #ffd700; color: #121212; }
 
-.form-control::placeholder, .form-select option {
-    color: #ccc;
-}
-
-.form-control:focus, .form-select:focus {
-    outline: none;
-    border-color: #ffd700;
-    box-shadow: 0 0 8px #ffd700;
-}
-
-textarea.form-control {
-    min-height: 160px;
-    resize: vertical;
-}
-
-.button-group {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 25px;
-}
-
-button.btn-primary {
-    background: #ffd700;
-    color: #121212;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-}
-
-button.btn-primary:hover {
-    opacity: 0.95;
-    transform: translateY(-2px);
-}
-
-button.btn-secondary {
-    background: #2a2a2a;
-    color: #ffffff;
-    border: 2px solid #ffd700;
-    padding: 12px 28px;
-    border-radius: 14px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-}
-
-button.btn-secondary:hover {
-    background: #ffd700;
-    color: #121212;
-}
-
-.tag-hint {
-    font-size: 0.9rem;
-    color: #aaa;
-    margin-bottom: 6px;
-}
-
-.tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.tag-chip {
-    padding: 8px 14px;
-    border-radius: 20px;
-    border: 1px solid #ffd700;
-    color: #ffd700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.tag-chip:hover {
-    background: #ffd700;
-    color: #121212;
-}
-
-.tag-chip.selected {
-    background: #ffd700;
-    color: #121212;
-    font-weight: 700;
-}
-
+    /* Tag styling */
+    .tag-hint { font-size: 0.9rem; color: #aaa; margin-bottom: 6px; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    .tag-chip { padding: 8px 14px; border-radius: 20px; border: 1px solid #ffd700; color: #ffd700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+    .tag-chip:hover { background: #ffd700; color: #121212; }
+    .tag-chip.selected { background: #ffd700; color: #121212; font-weight: 700; }
 </style>
 
 @code {
+    // Initialize a new journal entry with current date and timestamps
     JournalEntry entry = new JournalEntry
     {
         EntryDate = DateTime.Today,
         CreatedAt = DateTime.Now,
         UpdatedAt = DateTime.Now
     };
+
+    // List of predefined tags for quick selection
     List<string> predefinedTags = new()
     {
         "Work", "Career", "Studies", "Family", "Friends", "Relationships",
@@ -260,6 +174,7 @@ button.btn-secondary:hover {
         "Parenting", "Projects", "Planning", "Reflection"
     };
 
+    // Toggle a tag on/off in entry.Tags
     void ToggleTag(string tag)
     {
         var tags = (entry.Tags ?? "")
@@ -268,13 +183,14 @@ button.btn-secondary:hover {
             .ToList();
 
         if (tags.Contains(tag))
-            tags.Remove(tag);   // click again → remove
+            tags.Remove(tag);   // Remove if already selected
         else
-            tags.Add(tag);      // click → add
+            tags.Add(tag);      // Add if not selected
 
         entry.Tags = string.Join(", ", tags);
     }
 
+    // Check if a tag is currently selected
     bool IsTagSelected(string tag)
     {
         if (string.IsNullOrWhiteSpace(entry.Tags))
@@ -285,6 +201,8 @@ button.btn-secondary:hover {
             .Select(t => t.Trim())
             .Contains(tag);
     }
+
+    // Initialize Quill editor after first render
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -293,12 +211,13 @@ button.btn-secondary:hover {
         }
     }
 
+    // Save the entry to database
     async Task SaveEntry()
     {
         // Get HTML content from Quill editor
         entry.Content = await JS.InvokeAsync<string>("getQuillHtml", "contentEditor");
 
-        // Trim other strings
+        // Trim whitespace from all input fields
         entry.Title = entry.Title?.Trim();
         entry.PrimaryMood = entry.PrimaryMood?.Trim();
         entry.SecondaryMood1 = entry.SecondaryMood1?.Trim();
@@ -313,10 +232,12 @@ button.btn-secondary:hover {
         if (string.IsNullOrWhiteSpace(entry.Category))
             entry.Category = "Unknown";
 
+        // Check if an entry for today already exists
         var existing = await JournalService.GetEntryByDateAsync(entry.EntryDate);
 
         if (existing != null)
         {
+            // Update existing entry
             existing.Title = entry.Title;
             existing.Content = entry.Content;
             existing.PrimaryMood = entry.PrimaryMood;
@@ -329,16 +250,16 @@ button.btn-secondary:hover {
         }
         else
         {
+            // Add new entry
             entry.CreatedAt = DateTime.Now;
             entry.UpdatedAt = DateTime.Now;
             await JournalService.AddEntryAsync(entry);
         }
 
+        // Navigate to journal entries page
         Nav.NavigateTo("/entries");
     }
 
-     
-
-
+    // Cancel and go back to entries page without saving
     void Cancel() => Nav.NavigateTo("/entries");
 }
