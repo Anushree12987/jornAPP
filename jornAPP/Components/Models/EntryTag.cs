@@ -1,11 +1,20 @@
 using SQLite;
-namespace jornAPP.Components.Models;
 
-public class EntryTag
+namespace jornAPP.Components.Models
 {
-    [PrimaryKey, AutoIncrement]
-    public int Id { get; set; }
+    // This class represents the relationship between a journal entry and a tag
+    // It is used to associate multiple tags with a single journal entry
+    public class EntryTag
+    {
+        // Unique identifier for this EntryTag record
+        // Primary key in the SQLite database and auto-incremented
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
 
-    public int EntryId { get; set; }
-    public int TagId { get; set; }
+        // The ID of the journal entry this tag is associated with
+        public int EntryId { get; set; }
+
+        // The ID of the tag associated with the journal entry
+        public int TagId { get; set; }
+    }
 }
