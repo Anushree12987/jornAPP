@@ -26,7 +26,7 @@ namespace jornAPP.Components.Data
             Connection = new SQLiteAsyncConnection(databasePath);
 
             // Create tables if they do not exist
-            // Wait() ensures the tables are ready before using the database
+            // Wait() ensures the tables are ready before using the databasee
             Connection.CreateTableAsync<User>().Wait();
             Connection.CreateTableAsync<JournalEntry>().Wait();
             Connection.CreateTableAsync<Tag>().Wait();
@@ -34,7 +34,7 @@ namespace jornAPP.Components.Data
             Connection.CreateTableAsync<TagInfo>().Wait();
         }
 
-        // ===== Helper Methods =====
+        // ===== Helper Methods ===
 
         // Insert a new journal entry into the database
         public Task<int> InsertJournalEntryAsync(JournalEntry entry)
