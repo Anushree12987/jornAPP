@@ -21,6 +21,10 @@
             <p><span>Total Entries</span> @allEntries.Count</p>
             <p><span>Total Words Written</span> @totalWords</p>
             <p><span>Average per Entry</span> @Math.Round(avgWordCount, 0)</p>
+            <p><span>Missed Days</span> @missedDays</p>
+            <p><span>Most Used Tag</span> @mostUsedTag</p>
+
+
         </div>
 
         <!-- 📊 DISTRIBUTION -->
@@ -34,6 +38,24 @@
                     }
                 </ul>
             </div>
+            <div class="card">
+                <h3>🏷️ Tag Usage</h3>
+
+                @if (!tagCounts.Any())
+                {
+                    <p class="empty">No tags used yet.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var t in tagCounts)
+                        {
+                            <li>@t.Tag <span>@t.Count</span></li>
+                        }
+                    </ul>
+                }
+            </div>
+
 
             <div class="card">
                 <h3>🎯 Category Distribution</h3>
@@ -150,10 +172,14 @@
     List<JournalEntry> allEntries = new();
     List<(string Mood, int Count)> moodCounts = new();
     List<(string Category, int Count)> categoryCounts = new();
-
+    List<TagInfo> tagCounts = new();
+    
+    string mostUsedTag = "";
     string mostFrequentMood = "";
     int totalWords = 0;
     double avgWordCount = 0;
+    int missedDays = 0;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -165,6 +191,8 @@
         ComputeMoodData();
         ComputeCategoryData();
         ComputeWordData();
+        ComputeMissedDays();
+        ComputeTagData();  
     }
 
     void ComputeMoodData()
@@ -178,7 +206,7 @@
 
         mostFrequentMood = moodCounts.First().Mood;
     }
-
+   
     void ComputeCategoryData()
     {
         categoryCounts = allEntries
@@ -197,4 +225,45 @@
         totalWords = wordCounts.Sum();
         avgWordCount = wordCounts.Any() ? wordCounts.Average() : 0;
     }
+    void ComputeMissedDays()
+    {
+        var dates = allEntries
+            .Select(e => e.EntryDate.Date)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        if (dates.Count < 2)
+        {
+            missedDays = 0;
+            return;
+        }
+
+        var startDate = dates.First();
+        var endDate = dates.Last();
+
+        int totalDays = (endDate - startDate).Days + 1;
+        int writtenDays = dates.Count;
+
+        missedDays = totalDays - writtenDays;
+    }
+    void ComputeTagData()
+    {
+        tagCounts = allEntries
+            .Where(e => !string.IsNullOrWhiteSpace(e.Tags))
+            .SelectMany(e => e.Tags
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim()))
+            .GroupBy(t => t)
+            .Select(g => new TagInfo
+            {
+                Tag = g.Key,
+                Count = g.Count()
+            })
+            .OrderByDescending(t => t.Count)
+            .ToList();
+
+        mostUsedTag = tagCounts.Any() ? tagCounts.First().Tag : "";
+    }
+
 }

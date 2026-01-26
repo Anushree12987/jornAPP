@@ -23,6 +23,7 @@ public class AppDatabase
             Connection.CreateTableAsync<JournalEntry>().Wait();
             Connection.CreateTableAsync<Tag>().Wait();
             Connection.CreateTableAsync<EntryTag>().Wait();
+            Connection.CreateTableAsync<TagInfo>().Wait();
             
         }
         // ===== Helper Methods =====

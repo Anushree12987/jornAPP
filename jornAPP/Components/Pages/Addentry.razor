@@ -3,6 +3,7 @@
 @using jornAPP.Services
 @inject JournalService JournalService
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <h1>Add Journal Entry</h1>
 
@@ -12,9 +13,35 @@
     <label for="title">Title</label>
     <input id="title" placeholder="Enter title..." @bind="entry.Title" class="form-control mb-3" />
 
-    <!-- Content -->
+    <!-- Toolbar -->
     <label for="content">Your Thoughts</label>
-    <textarea id="content" placeholder="Write your entry here..." @bind="entry.Content" class="form-control mb-3" rows="10"></textarea>
+    <div id="contentToolbar">
+        <span class="ql-formats">
+            <button class="ql-bold">B</button>
+            <button class="ql-italic">I</button>
+            <button class="ql-underline">U</button>
+            <button class="ql-strike">S</button>
+        </span>
+        <span class="ql-formats">
+            <select class="ql-header">
+                <option selected value="">Normal</option>
+                <option value="1">H1</option>
+                <option value="2">H2</option>
+                <option value="3">H3</option>
+            </select>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="ordered">OL</button>
+            <button class="ql-list" value="bullet">UL</button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-link">Link</button>
+        </span>
+    </div>
+
+    <!-- Editor -->
+    <div id="contentEditor" class="form-control mb-3 ql-snow" style="height: 250px;"></div>
+    
 
     <!-- Primary Mood -->
     <!-- Primary Mood -->
@@ -60,8 +87,23 @@
 
 
     <!-- Tags -->
+    <!-- Tags -->
     <label>Tags</label>
-    <input placeholder="Add tags, comma-separated" @bind="entry.Tags" class="form-control mb-3" />
+    <input placeholder="Add tags, comma-separated"
+           @bind="entry.Tags"
+           class="form-control mb-2" />
+
+    <p class="tag-hint">Click to add tags:</p>
+
+    <div class="tag-list">
+        @foreach (var tag in predefinedTags)
+        {
+            <span class="tag-chip @(IsTagSelected(tag) ? "selected" : "")"
+                  @onclick="() => ToggleTag(tag)">
+                @tag
+            </span>
+        }
+    </div>
 
     <!-- Buttons -->
     <div class="button-group">
@@ -162,6 +204,42 @@ button.btn-secondary:hover {
     background: #ffd700;
     color: #121212;
 }
+
+.tag-hint {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tag-chip {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid #ffd700;
+    color: #ffd700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.tag-chip:hover {
+    background: #ffd700;
+    color: #121212;
+}
+
+.tag-chip.selected {
+    background: #ffd700;
+    color: #121212;
+    font-weight: 700;
+}
+
 </style>
 
 @code {
@@ -171,19 +249,64 @@ button.btn-secondary:hover {
         CreatedAt = DateTime.Now,
         UpdatedAt = DateTime.Now
     };
+    List<string> predefinedTags = new()
+    {
+        "Work", "Career", "Studies", "Family", "Friends", "Relationships",
+        "Health", "Fitness", "Personal Growth", "Self-care",
+        "Hobbies", "Travel", "Nature", "Finance", "Spirituality",
+        "Birthday", "Holiday", "Vacation", "Celebration",
+        "Exercise", "Reading", "Writing", "Cooking",
+        "Meditation", "Yoga", "Music", "Shopping",
+        "Parenting", "Projects", "Planning", "Reflection"
+    };
+
+    void ToggleTag(string tag)
+    {
+        var tags = (entry.Tags ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .ToList();
+
+        if (tags.Contains(tag))
+            tags.Remove(tag);   // click again → remove
+        else
+            tags.Add(tag);      // click → add
+
+        entry.Tags = string.Join(", ", tags);
+    }
+
+    bool IsTagSelected(string tag)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Tags))
+            return false;
+
+        return entry.Tags
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Contains(tag);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initQuill", "contentEditor");
+        }
+    }
 
     async Task SaveEntry()
     {
-        // Trim strings
+        // Get HTML content from Quill editor
+        entry.Content = await JS.InvokeAsync<string>("getQuillHtml", "contentEditor");
+
+        // Trim other strings
         entry.Title = entry.Title?.Trim();
-        entry.Content = entry.Content?.Trim();
         entry.PrimaryMood = entry.PrimaryMood?.Trim();
         entry.SecondaryMood1 = entry.SecondaryMood1?.Trim();
         entry.SecondaryMood2 = entry.SecondaryMood2?.Trim();
         entry.Category = entry.Category?.Trim();
         entry.Tags = entry.Tags?.Trim();
 
-        // ✅ Set defaults if not selected
+        // Set defaults if not selected
         if (string.IsNullOrWhiteSpace(entry.PrimaryMood))
             entry.PrimaryMood = "Unknown";
 
@@ -194,7 +317,6 @@ button.btn-secondary:hover {
 
         if (existing != null)
         {
-            // Update existing entry
             existing.Title = entry.Title;
             existing.Content = entry.Content;
             existing.PrimaryMood = entry.PrimaryMood;
@@ -209,14 +331,13 @@ button.btn-secondary:hover {
         {
             entry.CreatedAt = DateTime.Now;
             entry.UpdatedAt = DateTime.Now;
-
-            // ✅ Add new entry via JournalService
             await JournalService.AddEntryAsync(entry);
         }
 
         Nav.NavigateTo("/entries");
     }
 
+     
 
 
     void Cancel() => Nav.NavigateTo("/entries");
