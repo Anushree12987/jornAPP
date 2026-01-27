@@ -64,7 +64,8 @@
                     <!-- Entry Title -->
                     <h3 class="entry-title">@entry.Title</h3>
                     <!-- Entry Content -->
-                    <p class="entry-content">@entry.Content</p>
+                    <div class="entry-content">@((MarkupString)entry.Content)</div>
+
                     <!-- Edit/Delete Buttons -->
                     <div class="card-actions">
                         <button class="btn-edit" @onclick="() => EditEntry(entry)">Edit</button>
