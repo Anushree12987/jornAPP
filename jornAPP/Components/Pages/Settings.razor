@@ -10,44 +10,57 @@
 @inject PdfService PdfService
 @inject JournalService JournalService
 
-<h2>Settings ⚙️</h2>
+<h2>Settings ️</h2>
 
+<!-- ================= THEME TOGGLE SECTION ================= -->
 <div class="settings-section">
     <h3>Theme</h3>
+    <!-- Toggle between Light and Dark mode -->
     <button class="btn-primary" @onclick="ToggleTheme">
         Switch to @(ThemeService.IsDark ? "Light" : "Dark") Mode
     </button>
 </div>
 
+<!-- ================= SECURITY SECTION ================= -->
 <div class="settings-section">
     <h3>Security</h3>
+    <!-- Input for new password -->
     <input class="input-field" placeholder="New Password" type="password" @bind="newPassword" />
     <button class="btn-primary" @onclick="ChangePassword">Change Password</button>
+    <!-- Display success/error messages -->
     <p class="error">@securityMessage</p>
 </div>
 
+<!-- ================= EXPORT PDF SECTION ================= -->
 <div class="settings-section">
     <h3>Export Journal</h3>
 
+    <!-- Option to filter entries by date range -->
     <label>
         <input type="checkbox" @bind="useDataRange" /> Filter by date range
     </label>
 
     @if (useDataRange)
     {
+        <!-- Date range inputs -->
         <label>From:</label>
         <input class="input-field" type="date" @bind="startDate" />
         <label>To:</label>
         <input class="input-field" type="date" @bind="endDate" />
     }
 
+    <!-- Export button -->
     <button class="btn-primary" @onclick="ExportPdf">Export PDF</button>
+    <!-- Display export status -->
     <p>@exportMessage</p>
 </div>
 
+<!-- ================= DELETE OLD ENTRIES SECTION ================= -->
 <div class="settings-section">
     <h3>Delete Old Entries</h3>
+    <!-- Button to delete orphaned/old entries -->
     <button class="btn-primary" @onclick="DeleteOrphanedEntries">🗑️ Delete Old Entries</button>
+    <!-- Display deletion status -->
     <p>@deleteMessage</p>
 </div>
 
@@ -56,7 +69,7 @@
 .settings-section {
     margin: 20px 0;
     padding: 22px;
-    background-color: var(--section-bg);
+    background-color: var(--section-bg); /* section background (dark/light) */
     border-radius: 14px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -74,7 +87,7 @@
     letter-spacing: 0.5px;
 }
 
-/* ================= INPUTS ================= */
+/* ================= INPUT FIELDS ================= */
 .input-field {
     width: 100%;
     padding: 13px 16px;
@@ -97,6 +110,7 @@
     box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.25);
 }
 
+/* Error message styling */
 .error {
     color: #ff5c5c;
     margin-top: 10px;
@@ -105,18 +119,22 @@
 </style>
 
 @code {
-    string newPassword = "";
-    string securityMessage = "";
-    string exportMessage = "";
-    bool useDataRange = false;
-    DateTime startDate = DateTime.Today.AddDays(-7);
-    DateTime endDate = DateTime.Today;
+    // ================= VARIABLES =================
+    string newPassword = "";           // Stores new password input
+    string securityMessage = "";       // Displays password change success/error
+    string exportMessage = "";         // Displays PDF export status
+    bool useDataRange = false;         // Toggle for filtering export by date
+    DateTime startDate = DateTime.Today.AddDays(-7); // Default start date
+    DateTime endDate = DateTime.Today;               // Default end date
+    string deleteMessage = "";          // Displays deletion status
 
+    // ================= THEME TOGGLE =================
     void ToggleTheme()
     {
-        ThemeService.ToggleTheme();
+        ThemeService.ToggleTheme(); // Switch between dark/light mode
     }
 
+    // ================= CHANGE PASSWORD =================
     async Task ChangePassword()
     {
         if (string.IsNullOrWhiteSpace(newPassword))
@@ -125,11 +143,14 @@
             return;
         }
 
+        // Call SecurityService to change password
         var success = await SecurityService.ChangePasswordAsync(newPassword);
         securityMessage = success ? "Password changed successfully" : "Failed to change password";
-        newPassword = "";
+
+        newPassword = ""; // Clear input field
     }
 
+    // ================= EXPORT PDF =================
     async Task ExportPdf()
     {
         try
@@ -137,7 +158,10 @@
             exportMessage = "Starting export...";
             StateHasChanged();
 
+            // Get all entries for export
             var allEntries = await EntryService.GetAllEntriesForExportAsync() ?? new List<JournalEntry>();
+
+            // Filter by date range if option enabled
             var entries = useDataRange
                 ? allEntries.Where(e => e.EntryDate.Date >= startDate.Date && e.EntryDate.Date <= endDate.Date).ToList()
                 : allEntries;
@@ -151,22 +175,19 @@
             exportMessage = $"Generating PDF for {entries.Count} entries...";
             StateHasChanged();
 
-            // Generate PDF as byte[]
+            // Generate PDF bytes
             byte[] pdfBytes = PdfService.ExportEntriesToPdf(entries, useDataRange ? startDate : null, useDataRange ? endDate : null);
 
+            // Prepare file path
             var fileName = useDataRange
                 ? $"Journal_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf"
                 : $"Journal_AllEntries_{DateTime.Now:yyyyMMdd}.pdf";
 
-            // Desktop folder path
             var desktopFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "jornapppdf");
 
             if (!Directory.Exists(desktopFolder))
-            {
                 Directory.CreateDirectory(desktopFolder);
-            }
 
-            // Full file path
             var filePath = Path.Combine(desktopFolder, fileName);
 
             // Save PDF
@@ -175,35 +196,38 @@
             // Open PDF automatically
             await Launcher.OpenAsync(filePath);
 
-            exportMessage = $"✅ PDF saved and opened at: {filePath}";
+            exportMessage = $" PDF saved and opened at: {filePath}";
         }
         catch (Exception ex)
         {
-            exportMessage = $"❌ Export failed: {ex.Message}";
+            exportMessage = $" Export failed: {ex.Message}";
         }
     }
 
-    string deleteMessage = "";
+    // ================= DELETE OLD ENTRIES =================
     async Task DeleteOrphanedEntries()
     {
         try
         {
             await EntryService.DeleteOrphanedEntriesAsync();
-            deleteMessage = "✅ Old entries deleted! Create new entries and they will export correctly.";
+            deleteMessage = " Old entries deleted! Create new entries and they will export correctly.";
         }
         catch (Exception ex)
         {
-            deleteMessage = $"❌ Error: {ex.Message}";
+            deleteMessage = $" Error: {ex.Message}";
         }
     }
 
+    // ================= THEME CHANGE EVENT =================
     protected override void OnInitialized()
     {
+        // Subscribe to theme changes so the page updates automatically
         ThemeService.OnThemeChanged += StateHasChanged;
     }
 
     public void Dispose()
     {
+        // Unsubscribe from theme changes to prevent memory leaks
         ThemeService.OnThemeChanged -= StateHasChanged;
     }
 }

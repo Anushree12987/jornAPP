@@ -5,28 +5,35 @@
 @inject NavigationManager NavigationManager
 @inject ThemeService ThemeService
 
+<!--  MAIN CONTAINER -->
+<!-- Applies dark or light theme dynamically -->
 <div class="stats-container @(ThemeService.IsDark ? "dark-theme" : "light-theme")">
 
-    <!-- Top Navigation -->
+    <!-- 🔝 Top Navigation -->
     <nav class="top-nav">
-        <button class="btn-nav" @onclick="GoToHome">🏠 Home</button>
-        <button class="btn-nav" @onclick="GoToEntries">📖 Entries</button>
-        <button class="btn-nav" @onclick="GoToAddEntry">📝 Add Entry</button>
-        <button class="btn-nav" @onclick="GoToAnalytics">📊 Analytics</button>
+        <button class="btn-nav" @onclick="GoToHome"> Home</button>
+        <button class="btn-nav" @onclick="GoToEntries"> Entries</button>
+        <button class="btn-nav" @onclick="GoToAddEntry"> Add Entry</button>
+        <button class="btn-nav" @onclick="GoToAnalytics"> Analytics</button>
     </nav>
 
-    <h1 class="page-title">📊 Mood Analytics</h1>
+    <!-- PAGE TITLE & SUBTITLE -->
+    <h1 class="page-title"> Mood Analytics</h1>
     <p class="subtitle">Track your emotions and journal habits over time.</p>
 
-    <!-- Mood Distribution Pie Chart -->
+    <!--  MOOD DISTRIBUTION PIE CHART -->
     <div class="card">
-        <h2>😊 Mood Distribution</h2>
+        <h2> Mood Distribution</h2>
+
+        <!-- SVG Pie Chart -->
         <svg viewBox="-1 -1 2 2" style="transform: rotate(-90deg)" width="300" height="300">
             @foreach (var slice in MoodSlices)
             {
                 <path d="@GetArcPath(slice.StartAngle, slice.EndAngle)" fill="@slice.Color"></path>
             }
         </svg>
+
+        <!-- Legend -->
         <ul>
             @foreach (var slice in MoodSlices)
             {
@@ -35,15 +42,18 @@
         </ul>
     </div>
 
-    <!-- Category Distribution Pie Chart -->
+    <!--  CATEGORY DISTRIBUTION PIE CHART -->
     <div class="card">
-        <h2>🎯 Category Distribution</h2>
+        <h2> Category Distribution</h2>
+
         <svg viewBox="-1 -1 2 2" style="transform: rotate(-90deg)" width="300" height="300">
             @foreach (var slice in CategorySlices)
             {
                 <path d="@GetArcPath(slice.StartAngle, slice.EndAngle)" fill="@slice.Color"></path>
             }
         </svg>
+
+        <!-- Legend -->
         <ul>
             @foreach (var slice in CategorySlices)
             {
@@ -52,56 +62,113 @@
         </ul>
     </div>
 
-    <!-- Streaks -->
+    <!--  STREAKS SECTION -->
     <div class="card">
-        <h2>🔥 Streaks</h2>
+        <h2> Streaks</h2>
         <p>Current Streak: <strong>@currentStreak</strong> days</p>
         <p>Longest Streak: <strong>@longestStreak</strong> days</p>
     </div>
 
-    <!-- Back Buttons -->
+    <!-- BACK BUTTONS -->
     <div class="back-button-container">
         <button class="btn-back" @onclick="GoToEntries">← Back to Entries</button>
         <button class="btn-back" @onclick="GoToHome">← Back to Home</button>
     </div>
 </div>
 
+<!--  STYLING -->
 <style>
-.stats-container { max-width: 900px; margin: 50px auto; padding: 20px; font-family: 'Segoe UI', sans-serif; }
-.top-nav { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; }
-.btn-nav { background: #ffd700; color: #121212; border: none; padding: 10px 22px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-.btn-nav:hover { opacity: 0.85; transform: translateY(-2px); }
+.stats-container {
+    max-width: 900px;
+    margin: 50px auto;
+    padding: 20px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Top navigation */
+.top-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+.btn-nav {
+    background: #ffd700;
+    color: #121212;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-nav:hover {
+    opacity: 0.85;
+    transform: translateY(-2px);
+}
+
+/* Page header */
 .page-title { font-size: 2.5rem; text-align: center; color: #ffd700; margin-bottom: 5px; }
 .subtitle { text-align: center; color: #e0e0e0; font-size: 1.1rem; margin-bottom: 30px; }
-.card { background: #141414; border-radius: 16px; padding: 28px 30px; margin-bottom: 28px; box-shadow: 0 12px 30px rgba(255, 204, 0, 0.6); color: #fff; text-align: center; }
+
+/* Cards for charts & streaks */
+.card {
+    background: #141414;
+    border-radius: 16px;
+    padding: 28px 30px;
+    margin-bottom: 28px;
+    box-shadow: 0 12px 30px rgba(255, 204, 0, 0.6);
+    color: #fff;
+    text-align: center;
+}
 .card h2 { color: #ffd700; margin-bottom: 16px; }
 .card p { font-size: 1.2rem; margin: 6px 0; }
 .card p strong { color: #ffd700; font-size: 1.4rem; }
+
+/* Legend styling */
 .card ul { list-style: none; padding: 0; margin-top: 10px; }
 .card ul li { font-size: 1.1rem; margin: 4px 0; }
+
+/* Back buttons */
 .back-button-container { display: flex; justify-content: center; gap: 15px; margin-top: 40px; flex-wrap: wrap; }
-.btn-back { background: #121212; color: #ffd700; border: 2px solid #ffd700; padding: 12px 26px; border-radius: 12px; cursor: pointer; }
+.btn-back {
+    background: #121212;
+    color: #ffd700;
+    border: 2px solid #ffd700;
+    padding: 12px 26px;
+    border-radius: 12px;
+    cursor: pointer;
+}
 .btn-back:hover { background: #ffd700; color: #121212; }
+
+/* Theme toggles */
 .dark-theme { background-color: #0b0b0b; color: #f5f5f5; }
 .light-theme { background-color: #ffffff; color: #111111; }
 </style>
 
 @code {
+    //  All journal entries
     private List<JournalEntry> entries = new();
+
+    //  Pie chart slices
     private List<PieSlice> MoodSlices = new();
     private List<PieSlice> CategorySlices = new();
+
+    //  Streak information
     private int currentStreak;
     private int longestStreak;
 
+    //  Load data on initialization
     protected override async Task OnInitializedAsync()
     {
         entries = await JournalService.GetAllEntriesAsync();
 
-        PrepareMoodSlices();
-        PrepareCategorySlices();
-        CalculateStreaks();
+        PrepareMoodSlices();      // Prepare data for mood pie chart
+        PrepareCategorySlices();  // Prepare data for category pie chart
+        CalculateStreaks();       // Calculate streaks from entry dates
     }
 
+    //  Prepare mood slices for pie chart
     private void PrepareMoodSlices()
     {
         var moods = new[] { "😊 Happy", "😌 Calm", "😐 Okay", "😔 Sad", "😤 Stressed" };
@@ -113,6 +180,7 @@
         {
             int count = entries.Count(e => e.PrimaryMood == m);
             double angle = total == 0 ? 0 : (double)count / total * 360;
+
             var slice = new PieSlice
             {
                 Label = m,
@@ -126,6 +194,7 @@
         }).ToList();
     }
 
+    //  Prepare category slices for pie chart
     private void PrepareCategorySlices()
     {
         var categories = new[] { "Positive", "Neutral", "Negative" };
@@ -137,6 +206,7 @@
         {
             int count = entries.Count(e => e.Category == c);
             double angle = total == 0 ? 0 : (double)count / total * 360;
+
             var slice = new PieSlice
             {
                 Label = c,
@@ -150,13 +220,17 @@
         }).ToList();
     }
 
+    //  Calculate current and longest streaks
     private void CalculateStreaks()
     {
         if (!entries.Any()) return;
+
         var dates = entries.Select(e => e.EntryDate.Date).Distinct().OrderBy(d => d).ToList();
+
         int streak = 1;
         currentStreak = 1;
         longestStreak = 1;
+
         for (int i = 1; i < dates.Count; i++)
         {
             if ((dates[i] - dates[i - 1]).Days == 1)
@@ -169,6 +243,7 @@
         }
     }
 
+    //  Convert angles to SVG arc path for pie chart
     private string GetArcPath(double startAngle, double endAngle)
     {
         double rad(double deg) => deg * Math.PI / 180;
@@ -180,11 +255,13 @@
         return $"M 0 0 L {x1} {y1} A 1 1 0 {(largeArc ? 1 : 0)} 1 {x2} {y2} Z";
     }
 
+    //  Navigation methods
     private void GoToHome() => NavigationManager.NavigateTo("/");
     private void GoToEntries() => NavigationManager.NavigateTo("/entries");
     private void GoToAddEntry() => NavigationManager.NavigateTo("/addentry");
     private void GoToAnalytics() => NavigationManager.NavigateTo("/analytics");
 
+    //  PieSlice class for charts
     public class PieSlice
     {
         public string Label { get; set; } = "";

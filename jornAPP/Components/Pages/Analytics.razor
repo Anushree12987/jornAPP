@@ -3,34 +3,37 @@
 @using jornAPP.Services
 @inject JournalService JournalService
 
+<!--  Main Container -->
 <div class="analytics-container">
 
-    <h1>📊 Your Journal Analytics</h1>
+    <!-- PAGE HEADER -->
+    <h1> Your Journal Analytics</h1>
     <p class="subtitle">Insights based on your past entries</p>
 
+    @* If there are no journal entries, show a friendly message *@
     @if (!allEntries.Any())
     {
         <p class="empty">No entries yet.</p>
     }
     else
     {
-        <!-- 📌 SUMMARY BOX -->
+        <!--  SUMMARY BOX -->
         <div class="summary-card">
-            <h2>📌 Summary</h2>
+            <h2> Summary</h2>
             <p><span>Most Frequent Mood</span> @mostFrequentMood</p>
             <p><span>Total Entries</span> @allEntries.Count</p>
             <p><span>Total Words Written</span> @totalWords</p>
             <p><span>Average per Entry</span> @Math.Round(avgWordCount, 0)</p>
             <p><span>Missed Days</span> @missedDays</p>
             <p><span>Most Used Tag</span> @mostUsedTag</p>
-
-
         </div>
 
-        <!-- 📊 DISTRIBUTION -->
+        <!--  DISTRIBUTION GRID -->
         <div class="grid">
+
+            <!-- Mood Distribution Card -->
             <div class="card">
-                <h3>😊 Mood Distribution</h3>
+                <h3> Mood Distribution</h3>
                 <ul>
                     @foreach (var m in moodCounts)
                     {
@@ -38,8 +41,10 @@
                     }
                 </ul>
             </div>
+
+            <!-- Tag Usage Card -->
             <div class="card">
-                <h3>🏷️ Tag Usage</h3>
+                <h3> Tag Usage</h3>
 
                 @if (!tagCounts.Any())
                 {
@@ -56,9 +61,9 @@
                 }
             </div>
 
-
+            <!-- Category Distribution Card -->
             <div class="card">
-                <h3>🎯 Category Distribution</h3>
+                <h3> Category Distribution</h3>
                 <ul>
                     @foreach (var c in categoryCounts)
                     {
@@ -70,17 +75,18 @@
     }
 </div>
 
+<!--  STYLING -->
 <style>
-/* 🌑 PAGE */
+/* Main page container */
 .analytics-container {
     min-height: 100vh;
     padding: 30px 20px;
     background-color: transparent;
-    color: var(--text-color);
+    color: var(--text-color); /* Supports dark/light themes */
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* HEADER */
+/* Header */
 .analytics-container h1 {
     text-align: center;
     color: #ffcc00;
@@ -98,7 +104,7 @@
     color: #888;
 }
 
-/* 📌 SUMMARY */
+/* Summary Card */
 .summary-card {
     max-width: 700px;
     margin: 0 auto 36px;
@@ -125,7 +131,7 @@
     color: #aaa;
 }
 
-/* GRID */
+/* Grid for analytics cards */
 .grid {
     max-width: 900px;
     margin: auto;
@@ -134,7 +140,7 @@
     gap: 22px;
 }
 
-/* CARDS */
+/* Individual cards for mood, tags, categories */
 .card {
     background: #121212;
     border-radius: 16px;
@@ -148,7 +154,7 @@
     margin-bottom: 14px;
 }
 
-/* LIST */
+/* List styling */
 .card ul {
     list-style: none;
     padding: 0;
@@ -169,25 +175,28 @@
 </style>
 
 @code {
-    List<JournalEntry> allEntries = new();
-    List<(string Mood, int Count)> moodCounts = new();
-    List<(string Category, int Count)> categoryCounts = new();
-    List<TagInfo> tagCounts = new();
-    
-    string mostUsedTag = "";
-    string mostFrequentMood = "";
-    int totalWords = 0;
-    double avgWordCount = 0;
-    int missedDays = 0;
+    //  Data storage for analytics
+    List<JournalEntry> allEntries = new(); // All journal entries
+    List<(string Mood, int Count)> moodCounts = new(); // Mood frequency
+    List<(string Category, int Count)> categoryCounts = new(); // Category frequency
+    List<TagInfo> tagCounts = new(); // Tag frequency
 
+    string mostUsedTag = ""; // Most used tag
+    string mostFrequentMood = ""; // Most frequent mood
+    int totalWords = 0; // Total words written
+    double avgWordCount = 0; // Average words per entry
+    int missedDays = 0; // Days without entries
 
+    //  On component initialization
     protected override async Task OnInitializedAsync()
     {
+        // Fetch all journal entries
         allEntries = await JournalService.GetAllEntriesAsync();
 
         if (!allEntries.Any())
-            return;
+            return; // Exit if there are no entries
 
+        // Compute analytics data
         ComputeMoodData();
         ComputeCategoryData();
         ComputeWordData();
@@ -195,6 +204,7 @@
         ComputeTagData();  
     }
 
+    //  Compute frequency of moods and identify the most frequent
     void ComputeMoodData()
     {
         moodCounts = allEntries
@@ -206,7 +216,8 @@
 
         mostFrequentMood = moodCounts.First().Mood;
     }
-   
+
+    //  Compute frequency of categories
     void ComputeCategoryData()
     {
         categoryCounts = allEntries
@@ -216,6 +227,7 @@
             .ToList();
     }
 
+    //  Compute total and average word count per entry
     void ComputeWordData()
     {
         var wordCounts = allEntries
@@ -225,6 +237,8 @@
         totalWords = wordCounts.Sum();
         avgWordCount = wordCounts.Any() ? wordCounts.Average() : 0;
     }
+
+    //  Compute number of missed days between first and last entry
     void ComputeMissedDays()
     {
         var dates = allEntries
@@ -247,6 +261,8 @@
 
         missedDays = totalDays - writtenDays;
     }
+
+    //  Compute tag usage frequency and most used tag
     void ComputeTagData()
     {
         tagCounts = allEntries
@@ -266,4 +282,10 @@
         mostUsedTag = tagCounts.Any() ? tagCounts.First().Tag : "";
     }
 
+    // Helper class for tag frequency
+    public class TagInfo
+    {
+        public string Tag { get; set; } = "";
+        public int Count { get; set; }
+    }
 }
