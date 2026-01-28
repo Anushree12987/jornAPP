@@ -37,10 +37,19 @@ namespace jornAPP.Components.Data
         // ===== Helper Methods ===
 
         // Insert a new journal entry into the database
-        public Task<int> InsertJournalEntryAsync(JournalEntry entry)
+        public async Task<int> InsertJournalEntryAsync(JournalEntry entry)
         {
-            return Connection.InsertAsync(entry);
+            try
+            {
+                return await Connection.InsertAsync(entry);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inserting journal entry: {ex.Message}");
+                return 0; // indicate failure
+            }
         }
+
 
         // Update an existing journal entry
         public Task<int> UpdateJournalEntryAsync(JournalEntry entry)
@@ -58,22 +67,27 @@ namespace jornAPP.Components.Data
         // Optional parameters: from and to for date filtering
         public async Task<List<JournalEntry>> GetJournalEntriesAsync(int userId, DateTime? from = null, DateTime? to = null)
         {
-            // Fetch all entries for the user from database
-            var allEntries = await Connection.Table<JournalEntry>()
-                .Where(x => x.UserId == userId)
-                .ToListAsync();
+            try
+            {
+                var allEntries = await Connection.Table<JournalEntry>()
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
 
-            // Filter entries by start date if provided
-            if (from.HasValue)
-                allEntries = allEntries.Where(x => x.EntryDate.Date >= from.Value.Date).ToList();
+                if (from.HasValue)
+                    allEntries = allEntries.Where(x => x.EntryDate.Date >= from.Value.Date).ToList();
 
-            // Filter entries by end date if provided
-            if (to.HasValue)
-                allEntries = allEntries.Where(x => x.EntryDate.Date <= to.Value.Date).ToList();
+                if (to.HasValue)
+                    allEntries = allEntries.Where(x => x.EntryDate.Date <= to.Value.Date).ToList();
 
-            // Return entries sorted by date (most recent first)
-            return allEntries.OrderByDescending(x => x.EntryDate).ToList();
+                return allEntries.OrderByDescending(x => x.EntryDate).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetJournalEntriesAsync: {ex.Message}");
+                return new List<JournalEntry>(); // return empty list if error occurs
+            }
         }
+
 
         // Get a single journal entry for a user by a specific date
         public async Task<JournalEntry> GetEntryByDateAsync(int userId, DateTime date)
